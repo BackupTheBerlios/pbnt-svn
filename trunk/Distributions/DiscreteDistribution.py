@@ -11,8 +11,15 @@ class DiscreteDistribution:
 		self.CPT = CPT
 		self.ns = ns		 
 	
-	def set (self, value, probability):
-		put(self.CPT, value, probability, range(value.size()))
+	def set (self, indices, value):
+		#there seems to be a bug in numarray.  If arg axis is more than 1 element,
+		#then it can be a list / array, but if it is singular it has to be a single
+		#number.
+		nDim = size(shape(self.CPT))
+		if nDim > 1:
+			put(self.CPT, indices, value, range(nDim))
+		else:
+			put(self.CPT, indices, value)
 	
 	def normalise(self):
 		self.CPT[where(self.CPT == 0)] = 1
@@ -22,7 +29,7 @@ class DiscreteDistribution:
 	def ns(self):
 		return self.ns
 	
-	def probabilityOf (varAndParentValsArray):
+	def probabilityOf (self, varAndParentValsArray):
 		return take(self.CPT, varAndParentValsArray, axis=range(size(varAndParentValsArray)))
 		
 	

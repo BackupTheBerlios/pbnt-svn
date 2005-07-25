@@ -1,4 +1,5 @@
 from numarray import *
+import numarray.objects as obj
 from BayesNet import *
 from DiscreteDistribution import *
 
@@ -47,7 +48,7 @@ def test():
   dist[1,1,] = [0.01,0.99]
   wgDistribution = DiscreteDistribution(dist, nodeSizes[wetgrass])
   
-  distributions = [cDistribution, sDistribution, rDistribution, wgDistribution]
+  distributions = obj.array([cDistribution, sDistribution, rDistribution, wgDistribution])
   
   #create bayes net
   bnet = BayesNet(adjMat, nodeSizes, distributions)
@@ -174,16 +175,33 @@ def test():
     
   
   #test distributions
-  
-  
+  cloudyVal = 0
+  test8 = 1
+  if bnet.CPTs[cloudy].probabilityOf(array([cloudyVal])) == 0.5:
+    print "test 8a: OK\n"
+  else:
+    test8 = 0
+    print "test 8a: FAILED\n"
     
-    
-    
+  rainVal = 1
+  if bnet.CPTs[rain].probabilityOf(array([cloudyVal, rainVal])) == 0.2:
+    print "test 8b: OK\n"
+  else:
+    test8 = 0
+    print "test 8b: FAILED\n"
   
-  for (i,val) in zip(range(7),[test1,test2,test3,test4,test5,test6,test7]):
-    if not val:
-      print "test: %d FAILED\n" % (i+1)
-      return 0
-  
-  print "ALL TESTS SUCCEEDED\n"
-  return 1
+  sprinklerVal = 0
+  if bnet.CPTs[sprinkler].probabilityOf(array([cloudyVal, sprinklerVal])) == 0.5:
+    print "test 8c: OK\n"
+  else:
+    test8 = 0
+    print "test 8c: FAILED\n"
+                                  
+  wetgrassVal = 1
+  if bnet.CPTs[wetgrass].probabilityOf(array([sprinklerVal, rainVal, wetgrassVal])) == 0.9:
+    print "test 8d: OK\n"
+  else:
+    test8 = 0
+    print "test 8d: FAILED\n"
+    
+  return array([test1,test2,test3,test4,test5,test6,test7,test8])

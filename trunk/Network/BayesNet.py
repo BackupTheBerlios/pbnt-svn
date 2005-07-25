@@ -4,11 +4,11 @@ class BayesNet:
 	
 	#TODO: add optional arg node 
 	#names.
-	def __init__(self, adjMat, nodeSizes, CPT):
+	def __init__(self, adjMat, nodeSizes, CPTs):
 		#watch out cause next step wontwork if truly justby reference
 		self.graph = adjMat
 		self.nodeSizes = nodeSizes
-		self.CPT = CPT
+		self.CPTs = CPTs
 		self.numNodes = size(nodeSizes)
 				
 	def children (self, nI):
@@ -21,6 +21,6 @@ class BayesNet:
 		return self.numNodes
 	
 	def ns(self, varIndex):
-		return self.nodeSizes[i]
+		return self.nodeSizes[varIndex]
 
 		

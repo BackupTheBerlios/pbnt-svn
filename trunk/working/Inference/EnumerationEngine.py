@@ -1,34 +1,43 @@
 from numarray import *
+from InferenceEngine import *
+from DiscreteDistribution import *
 
 class EnumerationEngine(InferenceEngine):
 
 	def marginal ( self, queryVar ):
-		distributionTable = zeros([self.bnet.ns(queryVar)], type=float)
-		Q = DiscreteDistribution(distributionTable)
-		for val in range( x.ns() ):
-				self.add_evidence(self.bnet.indexOf(x), val)
+		ns = self.bnet.ns(queryVar)
+		distributionTable = zeros([ns], type=Float)
+		Q = DiscreteDistribution(distributionTable, ns)
+		if not (self.evidence[queryVar] == -1):
+			for val in range( ns ):
+				Q.set( val , 0 )
+			Q.set( self.evidence[queryVar], 1 )
+		else: 
+			for val in range( ns ):
+				self.add_evidence(queryVar, val)
 				Q.set(val, self.enumerateAll())
-		Q.normalise()
+			self.add_evidence(queryVar, -1)
+			Q.normalise()
 		return Q
 
 	def enumerateAll (self):
-		nonEvidence = where(self.evidence() == -1)
+		nonEvidence = where(self.evidence == -1)[0]
 		self.initialize(nonEvidence)
 		Q = self.probabilityOf(self.evidence)
 		while self.nextState(nonEvidence):
-			Q *= self.probabilityOf(self.evidence)
+			Q += self.probabilityOf(self.evidence)
 
 		self.evidence[nonEvidence] = -1
 		return Q
 	
 	def initialize( self, nonEvidenceNodes ):
-		self.evidence[nonEvidence] = 0
+		self.evidence[nonEvidenceNodes] = 0
 	
 	def nextState( self, nonEvidenceNodes ):
-		nodeSizes = self.bnet.ns()[nonEvidenceNodes]
+		nodeSizes = self.bnet.ns(nonEvidenceNodes)
 		numberOfNodes = size(nonEvidenceNodes)
 		for (node, ns) in zip(nonEvidenceNodes, nodeSizes):
-			if self.evidence[node] == ns - 1:
+			if self.evidence[node] == (ns - 1):
 				if node == nonEvidenceNodes[numberOfNodes - 1]:
 					return False
 				else:
@@ -41,8 +50,11 @@ class EnumerationEngine(InferenceEngine):
 		return True
 		
 	def probabilityOf (self, state):
-		for (i,val) in zip(range(size(state)), state):
-			
+		Q = 1
+		for (i) in range(size(state)):
+			vals = concatenate((state[self.bnet.parents(i)], state[i]))
+			Q *= self.bnet.CPTs[i].probabilityOf(vals)
+		return Q
 		
 					
 	
