@@ -24,48 +24,59 @@ class JunctionTreeEngine(InferenceEngine):
 		Gm += transpose(Gm)
 		return Gm
 	
-	def triangulateMoralGraph( self, Gm ):
-		Gtri = Gm.copy()
-		#triangulate the graph, basically make all nodes part of a triangle within
-		#the graph.  We do it blind here, but there are many heuristics for this which
-		#greatly increase speed and efficiency of jtree inference
-		for i in (range( self.bnet.numNodes ) - 2):
-			minCluster = Cluster( array([-1,-1,-1]),  -1 )
-			for node in range( self.bnet.numNodes ):
-				if any(Gm[node,]):
-					cluster = minCluster( Gm, node )
-					
-			
-					
-			
 	def connectParents( self, moral, node ):
 		parents = self.bnet.parents( node )
 		#we don't want to connect the last parent to itself so sub 1
 		for parentIndex in (range(size(parents)) - 1):
 			moral[parentIndex, parents[parentIndex+1:]] = 1			
+	
+	def triangulateMoralGraph( self, Gm ):
+		Gtri = Gm.copy()
+		#triangulate the graph, basically make all nodes part of a triangle within
+		#the graph.  We do it blind here, but there are many heuristics for this which
+		#greatly increase speed and efficiency of jtree inference
+		nodes = range( self.bnet.numNodes )
+		while len(nodes) > 2:
+			minCluster = Cluster( array([-1,-1,-1]), inf, array([]), inf )
+			#we could optimize this more by saving the clusters of each node, and only
+			#recomputing clusters that are the neighbor of a newly removed node
+			for node in nodes:
+				minCluster = zeroEdgeCluster( Gm, node, minCluster )
 			
-	#move the visitor pattern up one level, so instead of looking for min cluster for this node, get all zero clusters
-	#for all nodes, then all ones then all twos etc.
-	def minCluster( self, moral, node ):
-		minCluster = Cluster( array([-1,-1,-1]), inf, array([]), inf )
-		minCluster = zeroEdgeCluster( moral, node, minCluster )
-
-		if minCluster.numberOfEdges > 0:
-			minCluster = oneEdgeCluster( moral, node, minCluster)
-		
-		if minCluster.numberOfEdges > 1:
-			minCluster = twoEdgeCluster( moral, node, minCluster )
-		
-		if minCluster.numberOfEdges > 2:
-			minCluster = threeEdgeCluster( moral, node, minCluster )
-		
-		if minCluster.numberOfEdges > 3:
-			#throw an exception
-		else:
-			return minCluster
-			
-					
+			if minCluster.numberOfEdges > 0:
+				for node in nodes:
+					minCluster = oneEdgeCluster( Gm, node, minCluster )
 				
+			if minCluster.numberOfEdges > 1:
+				for node in nodes:
+					minCluster = twoEdgeCluster( Gm, node, nodes, minCluster )
+			
+			if minCluster.numberOfEdges > 2:
+				for node in nodes:
+					minCluster = threeEdgeCluster( Gm, node, nodes, minCluster )
+			
+			if minCluster.numberOfEdges > 3:
+				#throw error
+			
+			for edge in minCluster.edges:
+				#doubly connect so that works for our undirected rep
+				Gm[edge[0],edge[1]] = 1
+				Gm[edge[1],edge[0]] = 1
+				#add same edges to Gtri
+				Gtri[edge[0],edge[1]] = 1
+				Gtri[edge[1],edge[0]] = 1
+				
+				#remove the node from our list
+				nodes.remove( minCluster.node() )
+				#also remove the node from Gm
+				Gm[node,:] = 0
+				Gm[:,node] = 0
+			
+		#connect final two nodes, only do it in Gtri, cause we are throwing away Gm
+		Gtri[nodes[0],nodes[1]] = 1
+		Gtri[nodes[1],nodes[0]] = 1
+		return Gtri
+			
 	def zeroEdgeCluster( self, moral, node, minCluster ):
 		neighbors = where(moral[node,] == 1)[0]
 		for neighbor in neighbors:
@@ -82,6 +93,7 @@ class JunctionTreeEngine(InferenceEngine):
 		return minCluster
 	
 	def oneEdgeCluster( self, moral, node, minCluster ):
+		neighbors = where( moral[node,:] == 1 )[0]
 		for neighbor in neighbors:
 			#Second check: add one edge
 			#iterate through the other neighbors if there are any (basically we want to know if this node is in 
@@ -98,18 +110,36 @@ class JunctionTreeEngine(InferenceEngine):
 		return minCluster
 				
 	
-	def twoEdgeCluster( self, moral, node, minCluster ):
-		#add code here
+	def twoEdgeCluster( self, moral, node, nodes, minCluster ):
+		neighbors = where( moral[node,:] == 1 )[0]
+		for neighbor in neighbors:
+			for nodeLocal in nodes:
+				if not node == nodeLocal:
+					weight = computeClusterWeights([node, neighbor, nodeLocal])
+					cluster = Cluster( array([node, neighbor, nodeLocal]), 2, [array([node, nodeLocal]), array([neighbor, nodeLocal])], weight)
+					if cluster < minCluster:
+						minCluster = cluster
+		return minCluster
 	
-	def threeEdgeCluster( self, moral, node, minCluster ):
-		#add code here
+	def threeEdgeCluster( self, moral, node, nodes, minCluster ):
+		for nodeLocal in nodes:
+			if not node == nodeLocal:
+				for nodeL2 in nodes:
+					if not node == nodeL2 and not nodeLocal == nodeL2:
+						weight = computeCluterWeights([node, nodeLocal, nodeL2])
+						cluster = Cluster( array([node, nodeLocal, nodeL2]), 3, [array([node, nodeLocal]), array([node, nodeL2]), array([nodeLocal, nodeL2])], weight)
+						if cluster < minCluster:
+							minCluster = cluster
+		return minCluster
+			 
 	
 	def computeClusterWeights( self, nodes ):
 		return product( self.bnet.ns( nodes ) )					
 
 class Cluster:
 	
-	def __init__( self, nodes, numberOfEdges, edge, weight ):
+	#DO NOT VIOLATE ASSUMPTIONS BELOW
+	def __init__( self, nodes, numberOfEdges, edges, weight ):
 		self.nodes = nodes
 		self.numberOfEdges = numberOfEdges
 		self.edge = edge
@@ -125,5 +155,8 @@ class Cluster:
 				return False
 		else:
 			return False 
-			
+	
+	#ASSUMES: "nodes" is created with array([node, neighbor, otherneighbor])
+	def node( self ):
+		return self.nodes[0]
 			
