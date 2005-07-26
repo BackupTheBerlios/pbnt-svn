@@ -1,7 +1,7 @@
 #don't have to import BayesNet, DiscreteDistribution, 
 #or numarray because it is done in ExampleModels
 import ExampleModels as EX
-from EnumerationEngine import *
+from JunctionTreeEngine import *
 from utilities import *
 
 def test():
@@ -15,7 +15,7 @@ def test():
   rain = 2
   wetgrass = 3
   
-  engine = EnumerationEngine(water)
+  engine = JunctionTreeEngine(water)
   
   engine.add_evidence(cloudy, False)
   engine.add_evidence(rain, True)
@@ -94,6 +94,4 @@ def test():
   
   return array([test1,test2,test3,test4,test5])
   
-  
-    
   
