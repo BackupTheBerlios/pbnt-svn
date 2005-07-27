@@ -1,16 +1,45 @@
 from numarray import *
 from numarray.ieeespecial import *
+from utilities import *
+from Graph import *
+from Node import *
 
-class JunctionTreeEngine(InferenceEngine):
+class JunctionTreeEngine( InferenceEngine ):
+	#for reference please read, "Belief Networks: A Procedural Guide" by Cecil Huang and Adnan Darwiche (1994)
 
-	def __init__ (self,bnet):
-		InferenceEngine(self, bnet)
+	def __init__ ( self, bnet ):
+		InferenceEngine.__init__( self, bnet )
 		joinTree = BuildJoinTree()
+	
+	
+	def maginal( self, query ):
+		variableCliques = {}
+		for node in range( self.bnet.numNodes ):
+			variableCliques[ node ] = findClique( node )
+		
+		for node in 
+		
+		
+		
+	
+	
+	
 	
 	def BuildJoinTree ( self ):
 		#create the moral graph
 		Gm = moralGraph()
-		Gtri = triangulateMoralGraph( Gm )
+		#i don't like this style, but off the top of my head it is the 
+		#only way i can think of to get two return values
+		cliqueList = []
+		Gtri = triangulateMoralGraph( Gm, cliqueList )
+		
+		#would work better as some sort of heap
+		sepsetList = generateSepsetList( cliqueList )
+		
+		forest = createSepsetForest( sepsetList )
+		
+		#assume finished while work on marginal.
+					
 			
 					
 		
@@ -30,7 +59,7 @@ class JunctionTreeEngine(InferenceEngine):
 		for parentIndex in (range(size(parents)) - 1):
 			moral[parentIndex, parents[parentIndex+1:]] = 1			
 	
-	def triangulateMoralGraph( self, Gm ):
+	def triangulateMoralGraph( self, Gm, cliqueList ):
 		Gtri = Gm.copy()
 		#triangulate the graph, basically make all nodes part of a triangle within
 		#the graph.  We do it blind here, but there are many heuristics for this which
@@ -72,9 +101,18 @@ class JunctionTreeEngine(InferenceEngine):
 				Gm[node,:] = 0
 				Gm[:,node] = 0
 			
+			#check to see if we should add this cluster as a clique
+			clique = Clique( minCluster.nodes, minCluster.weight )
+			cliqueList = addCliqueToList( cliqueList, clique )
+			
+			
+			
 		#connect final two nodes, only do it in Gtri, cause we are throwing away Gm
 		Gtri[nodes[0],nodes[1]] = 1
 		Gtri[nodes[1],nodes[0]] = 1
+		#technically we should be adding these nodes into the clique list, but we know that they wont be added,
+		#we are guaranteed that the last 3 nodes will make a triangle, meaning that the last nodes and the last node
+		#have to be contained in that cluster.
 		return Gtri
 			
 	def zeroEdgeCluster( self, moral, node, minCluster ):
@@ -135,8 +173,36 @@ class JunctionTreeEngine(InferenceEngine):
 	
 	def computeClusterWeights( self, nodes ):
 		return product( self.bnet.ns( nodes ) )					
-
-class Cluster:
+	
+	def addCliqueToList( self, cliqueList, clique ):
+		addClique = 1
+		for c in cliqueList:
+			if clique.contains( c ):
+				cliqueList.remove( c )
+				continue
+			elif c.contains( clique ):
+				addClique = 0
+				break
+		if addClique:
+			cliqueList += [clique]
+		return cliqueList
+		
+	def generateSepsetList( self, cliqueList ):
+		sepsetList = []
+		for cliqueX in cliqueList[:-1]:
+			for cliqueY in cliqueList[cliqueList.index( cliqueX )+1 : ]:
+				if not cliqueX == cliqueY:
+					sepset = Sepset( cliqueX, cliqueY )
+					sepsetList = addToPriorityQueue( sepsetList, sepset )
+		return sepsetList
+		
+	def createSepsetForest( self, sepsetList ):
+		
+		#loop until sepsetList is empty, or we have looped n - 1 times
+		n = 0
+		while n < self.bnet.numNodes and len( sepsetList ) > 0:
+			
+class Cluster(Node):
 	
 	#DO NOT VIOLATE ASSUMPTIONS BELOW
 	def __init__( self, nodes, numberOfEdges, edges, weight ):
@@ -159,4 +225,79 @@ class Cluster:
 	#ASSUMES: "nodes" is created with array([node, neighbor, otherneighbor])
 	def node( self ):
 		return self.nodes[0]
+
+class Clique(Node):
+	
+	def __init__( self, nodes, weight ):
+		self.nodes = nodes
+	
+	#tests if self, contains the other clique
+	def contains( self, other ):
+		for node in other.nodes:
+			if not any( self.nodes == node ):
+				return False
+		return True
+	
+	#equal if all nodes in self are in other, might be able to optimize this but don't know numarray well enough yet
+	def __eq__( self, other ):
+		eq = (size( self.nodes ) == size( other.nodes ))
+		for node in other.nodes:
+			if not any( self.nodes == node ):
+				eq = 0
+				break
+		if eq:
+			return True
+		else:
+			return False
+		
+
+class Sepset(Node):
+	
+	def __init__( self, cliqueX, cliqueY ):
+		self.cliqueX = cliqueX
+		self.cliqueY = cliqueY
+		self.mass = size(unique( (cliqueX.nodes, cliqueY.nodes) ))
+		self.cost = cliqueX.weight + cliqueY.weight
+		self.neighbors = [cliqueX, cliqueY]
+		cliqueX.addNeighbor( self )
+		cliqueY.addNeighbor( self )
+	
+	#if self > other, means it has a higher priority
+	def __gt__( self, other ):
+		gt = 0
+		if self.mass > other.mass:
+			gt = 1
+		elif self.mass == other.mass:
+			if self.cost <= other.cost:
+				gt = 1
+		
+		if gt:
+			return True
+		else:
+			return False
+
+class JoinTree(Graph):
+	#this can be GREATLY IMPROVED ON IN EFFICIENCY
+	
+	def __init__( self, sepset ):
+		Graph.__init__( self, [sepset.cliqueX, sepset, sepset.cliqueY] )
+		self.sepsets = [sepset]
+		self.cliques = [sepset.cliqueX, sepset.cliqueY]
+	
+	def isInTree( self, clique ):
+		return clique in self.cliques	
+	
+		
+	#operators
+	def __getitem__( self, i ):
+		return self.sepsetList[i]
+	def __iter__( self ):
+		return self
+	def next( self ):
+		if len( self.sepsetList ) == 0:
+			raise StopIteration
+		sepset = self.sepsetList[0]
+		self.sepsetList = self.sepsetList[1:]
+		return sepset
+		
 			

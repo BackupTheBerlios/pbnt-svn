@@ -6,6 +6,7 @@ from utilities import *
 
 def test():
   
+  
   #define water network
   water = EX.water()
   
@@ -94,4 +95,41 @@ def test():
   
   return array([test1,test2,test3,test4,test5])
   
+
+def testMoral():
+   #define water network
+  water = EX.water()
+  
+  #define variable indexes
+  cloudy = 0
+  sprinkler = 1
+  rain = 2
+  wetgrass = 3
+  
+  engine = JunctionTreeEngine(water)
+  
+  moral = engine.moralGraph()
+  
+  correctMoral = water.graph.copy()
+  
+  #first make undirected
+  correctMoral[sprinkler,cloudy] = 1
+  correctMoral[rain, cloudy] = 1
+  correctMoral[wetgrass,sprinkler] = 1
+  correctMoral[wetgrass,rain] = 1
+  
+  #now connect the parents of each node
+  #cloudy has no parents
+  #sprinkler has only one parent
+  #rain has only one parent
+  #wetgrass has two parents rain and sprinkler, so connect them
+  correctMoral[sprinkler,rain] = 1
+  correctMoral[rain, sprinkler] = 1
+  
+  test1 = 1
+  if all(moral == correctMoral):
+    print "Test 1: OK\n"
+  else:
+    test1 = 0
+    print "Test 1: FAILED\n"
   

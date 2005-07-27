@@ -5,10 +5,11 @@ import UtilitiesTest
 from numarray import *
 
 print "starting tests"
+Usuccess = UtilitiesTest.test()
 Bsuccess = BayesNetTest.test()
 Esuccess = EnumerationTest.test()
-#JTsuccess = JunctionTreeTest.test()
-Usuccess = UtilitiesTest.test()
+JTsuccess = JunctionTreeTest.test()
+
 if all(Bsuccess) and all(Esuccess) and all(Usuccess):# and all(JTsuccess):
   print "ALL TESTS SUCCESSFUL"
 else:
