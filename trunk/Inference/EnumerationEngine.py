@@ -34,7 +34,9 @@ class EnumerationEngine(InferenceEngine):
 		self.evidence[nonEvidenceNodes] = 0
 	
 	def nextState( self, nonEvidenceNodes ):
-		nodeSizes = self.bnet.ns(nonEvidenceNodes)
+		nodeSizes = []
+		for node in nonEvidenceNodes:
+			nodeSizes.append(self.bnet.ns( node ))
 		numberOfNodes = size(nonEvidenceNodes)
 		for (node, ns) in zip(nonEvidenceNodes, nodeSizes):
 			if self.evidence[node] == (ns - 1):
@@ -52,8 +54,8 @@ class EnumerationEngine(InferenceEngine):
 	def probabilityOf (self, state):
 		Q = 1
 		for (i) in range(size(state)):
-			vals = concatenate((state[self.bnet.parents(i)], state[i]))
-			Q *= self.bnet.CPTs[i].probabilityOf(vals)
+			vals = concatenate((state[self.bnet.parentIndices(i)], state[i]))
+			Q *= self.bnet.CPTs(i).probabilityOf(vals)
 		return Q
 		
 					

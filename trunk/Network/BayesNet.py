@@ -1,26 +1,33 @@
 from numarray import *
+from DAG import *
 
-class BayesNet:
+class BayesNet( DAG ):
 	
-	#TODO: add optional arg node 
-	#names.
-	def __init__(self, adjMat, nodeSizes, CPTs):
-		#watch out cause next step wontwork if truly justby reference
-		self.graph = adjMat
-		self.nodeSizes = nodeSizes
-		self.CPTs = CPTs
-		self.numNodes = size(nodeSizes)
+	def __init__(self, nodes):
+		DAG.__init__( self, nodes )
 				
-	def children (self, nI):
-		return nonzero ( take ( self.graph, (nI,), 0))[1]
+	def children (self, i):
+		return self.nodes[i].children
 
-	def parents (self, nI):
-		return nonzero (take ( self.graph, (nI,), 1))[0]
+	def parents (self, i):
+		return self.nodes[i].parents
+	def parentIndices( self, i ):
+		indices = []
+		for node in self.nodes[i].parents:
+			indices.append(self.indexOf( node ))
+		return array(indices)
 	
 	def numberOfNodes(self):
 		return self.numNodes
 	
-	def ns(self, varIndex):
-		return self.nodeSizes[varIndex]
+	def ns(self, i):
+		return self.nodes[i].nodeSize
+	def CPTs( self, i ):
+		return self.nodes[i].CPT
+	
+	def indexOf( self, node ):
+		return self.nodes.index( node )
+
+		
 
 		

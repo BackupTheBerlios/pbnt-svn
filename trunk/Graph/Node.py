@@ -6,11 +6,11 @@ class Node:
         def __init__( self ):
                 #neighbors are actually connected by an edge, in a DAG neighbors = parents + children
                 self.neighbors = []
-                self.isRoot = False
-                self.isLeaf = False
-        
+                self.visited = False
+                       
         def addNeighbor( self, node ):
-                self.neighbors.append( node )
+                if not node in self.neighbors:
+                        self.neighbors.append( node )
         
         def removeNeighbor( self, node ):
                 self.neighbors.remove( node )

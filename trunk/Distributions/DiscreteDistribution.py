@@ -9,17 +9,32 @@ class DiscreteDistribution:
 
 	def __init__(self, CPT, ns):
 		self.CPT = CPT
-		self.ns = ns		 
+		self.ns = ns
+		self.dims = shape( CPT )
+		self.nDims = size( self.dims )
 	
-	def set (self, indices, value):
-		#there seems to be a bug in numarray.  If arg axis is more than 1 element,
-		#then it can be a list / array, but if it is singular it has to be a single
-		#number.
-		nDim = size(shape(self.CPT))
-		if nDim > 1:
-			put(self.CPT, indices, value, range(nDim))
-		else:
-			put(self.CPT, indices, value)
+	def setValue( self, indices, value, axes=-1 ):
+		if axes == -1:
+			axes = range( self.nDims )
+		put( self.CPT, indices, value, axis=axes )
+	
+	def getValue( self, varAndParentValsArray, axes=-1 ):
+		if axes == -1:
+			axes = range( self.nDims )
+		return take(self.CPT, varAndParentValsArray, axis=axes)
+		
+	def setMultipleValues( self, indices, axes, values ):
+		#have to do this special because the indices might be discontiguous
+		mask = ones( [self.nDims], type=Bool )
+		mask[axes] = 0
+		axesToIterateOver = array( range( self.nDims )  )[mask]
+		dimsToIterateOver = array(dims)[mask]
+		sequence = SequenceGenerator( dimsToIterateOver )
+		for seq in sequence:
+			put( self.CPT, concatenate(( seq, indices )), values[seq], axis=concatenate(( axesToIterateOver, axes )))
+		
+			
+		
 	
 	def normalise(self):
 		self.CPT[where(self.CPT == 0)] = 1
@@ -29,8 +44,5 @@ class DiscreteDistribution:
 	def ns(self):
 		return self.ns
 	
-	def probabilityOf (self, varAndParentValsArray):
-		return take(self.CPT, varAndParentValsArray, axis=range(size(varAndParentValsArray)))
-		
 	
 		    

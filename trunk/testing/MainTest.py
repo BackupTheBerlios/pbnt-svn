@@ -2,11 +2,13 @@ import BayesNetTest
 import EnumerationTest
 #import JunctionTreeTest
 import UtilitiesTest
+import SequenceGeneratorTest
 from numarray import *
 
 print "starting tests"
+Ssuccess = SequenceGeneratorTest.test()
 Usuccess = UtilitiesTest.test()
-Bsuccess = BayesNetTest.test()
+#Bsuccess = BayesNetTest.test()
 Esuccess = EnumerationTest.test()
 JTsuccess = JunctionTreeTest.test()
 
