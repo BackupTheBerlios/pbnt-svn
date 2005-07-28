@@ -1,4 +1,5 @@
 from numarray import *
+from SequenceGenerator import *
 
 class DiscreteDistribution:
 #to do listforthis class
@@ -11,11 +12,14 @@ class DiscreteDistribution:
 		self.CPT = CPT
 		self.ns = ns
 		self.dims = shape( CPT )
-		self.nDims = size( self.dims )
+		self.nDims = len( self.dims )
 	
 	def setValue( self, indices, value, axes=-1 ):
 		if axes == -1:
-			axes = range( self.nDims )
+			if self.nDims == 1:
+				axes = 0
+			else:
+				axes = range( self.nDims )
 		put( self.CPT, indices, value, axis=axes )
 	
 	def getValue( self, varAndParentValsArray, axes=-1 ):
@@ -28,10 +32,10 @@ class DiscreteDistribution:
 		mask = ones( [self.nDims], type=Bool )
 		mask[axes] = 0
 		axesToIterateOver = array( range( self.nDims )  )[mask]
-		dimsToIterateOver = array(dims)[mask]
+		dimsToIterateOver = array(self.dims)[mask]
 		sequence = SequenceGenerator( dimsToIterateOver )
 		for seq in sequence:
-			put( self.CPT, concatenate(( seq, indices )), values[seq], axis=concatenate(( axesToIterateOver, axes )))
+			put( self.CPT, concatenate(( seq, indices )), take( values, seq, axis=range(len( seq )) ), axis=concatenate(( axesToIterateOver, axes )).tolist())
 		
 			
 		

@@ -19,6 +19,10 @@ def water():
   sNode = BayesNode( 2 )
   rNode = BayesNode( 2 )
   wNode = BayesNode( 2 )
+
+  #cloudy
+  cNode.addChild( sNode )
+  cNode.addChild( rNode )
   
   #sprinkler
   sNode.addParent( cNode )

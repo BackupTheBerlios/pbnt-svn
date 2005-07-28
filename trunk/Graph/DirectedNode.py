@@ -21,7 +21,7 @@ class DirectedNode( Node ):
                 self.children.remove( child )
         
         def undirect( self ):
-                self.neighbors.append( self.parents + self.children )
+                self.neighbors = self.neighbors + self.parents + self.children
         
         
                 

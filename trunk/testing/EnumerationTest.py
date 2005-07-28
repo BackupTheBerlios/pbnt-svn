@@ -17,6 +17,7 @@ def test():
   
   engine = EnumerationEngine(water)
   
+  Q = engine.marginal(sprinkler)
   engine.add_evidence(cloudy, False)
   engine.add_evidence(rain, True)
   

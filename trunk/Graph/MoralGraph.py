@@ -1,5 +1,5 @@
 from DAG import *
-import utilities
+import GraphUtilities
 
 class MoralGraph( Graph ):
         
@@ -15,5 +15,5 @@ class MoralGraph( Graph ):
                         parents = node.parents
                         for i in range(len( parents )):
                                 for parent in parents[i:]:
-                                        utilities.connectNodes( node.parents[i], parent )
+                                        GraphUtilities.connectNodes( node.parents[i], parent )
         

@@ -20,7 +20,7 @@ class PriorityQueue:
                 self.i += 1
                 return self.queue[self.i]
         
-        def has_next( self ):
+        def hasNext( self ):
                 return len( self.queue ) > 0
         
         def init( self ):

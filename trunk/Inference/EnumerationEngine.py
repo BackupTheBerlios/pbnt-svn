@@ -10,12 +10,12 @@ class EnumerationEngine(InferenceEngine):
 		Q = DiscreteDistribution(distributionTable, ns)
 		if not (self.evidence[queryVar] == -1):
 			for val in range( ns ):
-				Q.set( val , 0 )
-			Q.set( self.evidence[queryVar], 1 )
+				Q.setValue( val , 0 )
+			Q.setValue( self.evidence[queryVar], 1 )
 		else: 
 			for val in range( ns ):
 				self.add_evidence(queryVar, val)
-				Q.set(val, self.enumerateAll())
+				Q.setValue(val, self.enumerateAll())
 			self.add_evidence(queryVar, -1)
 			Q.normalise()
 		return Q
@@ -55,7 +55,7 @@ class EnumerationEngine(InferenceEngine):
 		Q = 1
 		for (i) in range(size(state)):
 			vals = concatenate((state[self.bnet.parentIndices(i)], state[i]))
-			Q *= self.bnet.CPTs(i).probabilityOf(vals)
+			Q *= self.bnet.CPTs(i).getValue(vals)
 		return Q
 		
 					

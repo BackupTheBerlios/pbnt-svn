@@ -1,6 +1,8 @@
 from Node import *
 from SequenceGenerator import *
 import utilities
+from numarray import *
+from DiscreteDistribution import *
 
 class Sepset( Node ):
         
@@ -9,13 +11,15 @@ class Sepset( Node ):
                 self.cliqueX = cliqueX
                 self.cliqueY = cliqueY
                 self.nodes = utilities.intersect( cliqueX.nodes, cliqueY.nodes )
+                self.mass = len( self.nodes )
+                self.cost = product(array( [node.nodeSize for node in cliqueX.nodes] )) + product(array( [node.nodeSize for node in cliqueY.nodes] ))
                 
                 self.neighbors = [cliqueX, cliqueY]
-                dims = [x.ns for x in self.nodes]
-                self.potential = DiscreteDistribution( ones(dims), self.nodes[0].ns )
+                dims = [x.nodeSize for x in self.nodes]
+                self.potential = DiscreteDistribution( ones(dims, type=Float), self.nodes[0].nodeSize )
                 
                 self.axis = range( self.potential.nDims )
-                self.mu = [seq for seq in SequenceGenerator( dims )]
+                self.mu = SequenceGenerator( dims )
                 self.cliqueXAxes = [cliqueX.nodes.index( node ) for node in self.nodes]
                 self.cliqueYAxes = [cliqueY.nodes.index( node ) for node in self.nodes]
                 
@@ -25,7 +29,20 @@ class Sepset( Node ):
                         return self.cliqueXAxes
                 else:
                         return self.cliqueYAxes
+        
+        
+        def __lt__( self, other ):
+                #less than essentially means better than
+                if self.mass > other.mass:
+                        return True
+                if self.mass == other.mass and self.cost < other.cost:
+                        return True
                 
+                return False
+        
+        def reinitPotential( self ):
+                self.potential = DiscreteDistribution( ones(dims, type=Float), self.nodes[0].nodeSize )
+                        
                 
                 
                 

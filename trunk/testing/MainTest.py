@@ -1,16 +1,17 @@
 import BayesNetTest
 import EnumerationTest
-#import JunctionTreeTest
+import JunctionTreeTest
 import UtilitiesTest
 import SequenceGeneratorTest
 from numarray import *
 
 print "starting tests"
+JTsuccess = JunctionTreeTest.test()
+Esuccess = EnumerationTest.test()
 Ssuccess = SequenceGeneratorTest.test()
 Usuccess = UtilitiesTest.test()
-#Bsuccess = BayesNetTest.test()
-Esuccess = EnumerationTest.test()
-JTsuccess = JunctionTreeTest.test()
+Bsuccess = BayesNetTest.test()
+
 
 if all(Bsuccess) and all(Esuccess) and all(Usuccess):# and all(JTsuccess):
   print "ALL TESTS SUCCESSFUL"

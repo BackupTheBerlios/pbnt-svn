@@ -6,7 +6,8 @@ class SequenceGenerator:
 		self.stop = array(iterObjs) - 1
 		#assuming here that the start of each dimension is zero
 		self.value = zeros(size( iterObjs ))
-		self.value[0] -= 1
+		if len( self.value ) > 0:
+			self.value[0] -= 1
 	
 	def __iter__( self ):
 		return self

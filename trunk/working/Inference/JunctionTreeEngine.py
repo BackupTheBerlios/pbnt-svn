@@ -5,14 +5,27 @@ from Graph import *
 from Node import *
 from BayesNet import *
 from MoralGraph import *
+from TriangleGraph import *
+from InferenceEngine import *
+from PriorityQueue import *
+from JoinTree import *
+from Sepset import *
+import GraphUtilities
 
 class JunctionTreeEngine( InferenceEngine ):
 	#for reference please read, "Belief Networks: A Procedural Guide" by Cecil Huang and Adnan Darwiche (1994)
 
 	def __init__ ( self, bnet ):
 		InferenceEngine.__init__( self, bnet )
-		joinTree = BuildJoinTree()
-		inconsistentJoinTree = initializeJointTree()
+		
+		#when solve CliqueNode issue use this line
+		#self.bnet.nodes = [CliqueNode( node ) for node in self.bnet.nodes]
+		
+		#build a join tree and initialize it
+		self.joinTree = self.BuildJoinTree()
+		
+		#if needed
+		#self.joinTree.reInitialize( self.bnet.nodes )
 	
 	
 	def maginal( self, query ):
@@ -22,51 +35,55 @@ class JunctionTreeEngine( InferenceEngine ):
 		#of X that are consitent with R and sum them
 		#absorption identify the values of Y that are consisten with X (through sepset R)
 		#and multiply each element and set Y to be that result (for pass from X to Y)
-		consistentJoinTree = globalPropagation( incosistentJoinTree )
+		if not self.joinTree.initialized:
+			self.joinTree.reInitialize( self.bnet.nodes )
+		self.globalPropagation()
 		
 		#assuming no evidence
 		distributions = []
 		for node in query:
-			Q = DiscreteDistribution( node.nodeSize )
-			for value in node.nodeSize:
-				Q.set( value, sumOverConsistentValues( node, value ) )
+			Q = DiscreteDistribution( zeros([node.nodeSize], type=Float), node.nodeSize )
+			for value in range( node.nodeSize ):
+				#axis arg not needed, but nice for clarity
+				Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=0 )
 			distributions.append( Q )
 		
 		return distributions
 		
 		
-	def globalPropagation( self, inconsistentJointTree ):
+	def globalPropagation( self ):
+		self.joinTree.initialized = False
 		#arbitrarily pick a cluster
-		startCluster = inconsistentJointTree.clusters[0]
+		startCluster = self.joinTree.nodes[0]
 		
-		unmarkAllClusters()
+		GraphUtilities.unmarkAllNodes( self.joinTree )
 		#we use 0 to denote that there was no prevCluster and therefore no potential or mu
-		collectEvidence( 0, startCluster, True, 0 )
-		unmarkAllClusters()
-		distributeEvidence( startCluster )
+		self.collectEvidence( 0, startCluster, 0, True )
+		GraphUtilities.unmarkAllNodes( self.joinTree )
+		self.distributeEvidence( startCluster )
 	
-	def collectEvidence( self, prevCluster, currentCluster, isStart, sepset ):
+	def collectEvidence( self, prevCluster, currentCluster, sepset, isStart ):
 		if not currentCluster.visited:
 			currentCluster.visited = 1
 			for (neighbor, sep) in zip(currentCluster.neighbors, currentCluster.sepsets):
-				collectEvidence( currentCluster, toCluster, neighbor, 0, sep )
+				self.collectEvidence( currentCluster, neighbor, sep, 0 )
 			
 			if not isStart:
-				passMessage( toCluster, fromCluster, sepset )
+				self.passMessage( currentCluster, prevCluster, sepset )
 	
 	def distributeEvidence( self, cluster ):
 		cluster.visited = 1
-		for neighbor in cluster.neighbors:
-			passMessage( cluster, neighbor )
+		for (neighbor, sep) in zip( cluster.neighbors, cluster.sepsets ):
 			if not neighbor.visited:
-				distributeEvidence( neighbor )
+				self.passMessage( cluster, neighbor, sep )
+				self.distributeEvidence( neighbor )
 	
 	def passMessage( self, fromCluster, toCluster, sepset ):
 		#projection
-		oldSepsetPotential = sepset.CPT.copy()
-		project( fromCluster, sepset ) 
+		oldSepsetPotential = sepset.potential.CPT.copy()
+		self.project( fromCluster, sepset ) 
 		#absorption
-		absorb( toCluster, sepset, oldSepsetPotential )
+		self.absorb( toCluster, sepset, oldSepsetPotential )
 	
 	def project( self, cluster, sepset ):
 		mu = sepset.mu
@@ -75,26 +92,22 @@ class JunctionTreeEngine( InferenceEngine ):
 		for index in mu:
 			#get the relevant entries out of the cluster potential
 			values = cluster.CPT.getValue( index, clusterAxes )
-			sepset.CPT.setValue( index, sepsetAxis, sum( values ) )
+			sepset.potential.setValue( index, values.sum(), axes=sepsetAxis )
 				
 	def absorb( self, cluster, sepset, oldPotential ):
-		mu = cluster.mu( sepset )
-		potential = sepset.CPT / oldPotential
+		mu = sepset.mu
+		sepsetAxis = sepset.axis
+		clusterAxes = sepset.cliqueAxes( cluster )
+		potential = sepset.potential.CPT / oldPotential
 		#multiply and set potential, assumes that there is only one axis of difference between
 		#sepset and cluster
-		for (index, sepsetAxis, clusterAxis) in mu:
+		for index in mu:
 			sepsetValue = potential.getValue( index, sepsetAxis )
-			clusterValues = cluster.CPT.getValue( index, clusterAxis )
+			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
-			cluster.CPT.setMultipleValues( index, clusterAxis, newValues )
-	
+			cluster.CPT.setMultipleValues( index, clusterAxes, newValues )
 			
-		
-	
 
-		
-	
-	
 	def BuildJoinTree ( self ):
 		#create the moral graph
 		moralGraph = MoralGraph( self.bnet )
@@ -115,11 +128,11 @@ class JunctionTreeEngine( InferenceEngine ):
 			#insert sepsets into JoinTree
 			while sepsetHeap.hasNext():
 				sepset = sepsetHeap.next()
-				joinTreeX = getTree( forest, sepset.cliqueX )
-				joinTreeY = getTree( forest, sepset.cliqueY )
+				joinTreeX = GraphUtilities.getTree( forest, sepset.cliqueX )
+				joinTreeY = GraphUtilities.getTree( forest, sepset.cliqueY )
 				if joinTreeX != joinTreeY:
 					joinTreeX.merge( sepset, joinTreeY )
-					joinTrees.remove( joinTreeY )
+					forest.remove( joinTreeY )
 					break
 			
 		for tree in forest:
@@ -129,7 +142,9 @@ class JunctionTreeEngine( InferenceEngine ):
 		if len( forest ) > 1:
 			return forest
 		else:
-			return forest[0]	
+			return forest[0]
+	
+		
 			
 					
 		
