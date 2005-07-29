@@ -41,8 +41,8 @@ class DiscreteDistribution:
 		
 	
 	def normalise(self):
-		self.CPT[where(self.CPT == 0)] = 1
-		c = sum(reshape(self.CPT,(size(self.CPT),)))
+		#self.CPT[where(self.CPT == 0)] = 1
+		c = self.CPT.sum()
 		self.CPT = self.CPT/c
 	
 	def ns(self):

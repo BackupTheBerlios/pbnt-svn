@@ -12,4 +12,4 @@ class InferenceEngine:
 	def marginal(self):
 		self.action()
 
-	 #all child classes must implement marginal_nodes()
+	 #all child classes must implement marginal()

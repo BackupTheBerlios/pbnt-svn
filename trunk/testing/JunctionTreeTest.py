@@ -37,7 +37,7 @@ def test():
 	engine.add_evidence(cloudy, False)
 	engine.add_evidence(rain, True)
 	
-	Q = engine.marginal(wetgrass)
+	Q = engine.maginal([water.nodes[wetgrass]])[0]
 	
 	test1 = 1
 	if all(engine.evidence == array([0,-1,1,-1])):
@@ -61,7 +61,7 @@ def test():
 		test2 = 0
 		print "Test 2B: FAILED\n"
 	
-	Q = engine.marginal(sprinkler)
+	Q = engine.maginal([water.nodes[sprinkler]])[0]
 	
 	test3 = 1
 	if allclose(Q.CPT[False], .5, atol=.0001):
@@ -79,7 +79,8 @@ def test():
 	
 	engine.add_evidence(cloudy, -1)
 	engine.add_evidence(sprinkler, 0)
-	Q = engine.marginal(cloudy)
+	
+	Q = engine.maginal([water.nodes[cloudy]])[0]
 	
 	test4 = 1
 	if allclose(Q.CPT[False], .1220, atol=.0001):
@@ -94,7 +95,7 @@ def test():
 		test4 = 0
 		print "Test 4B: FAILED\n"
 	
-	Q = engine.marginal(rain)
+	Q = engine.maginal([water.nodes[rain]])[0]
 	
 	test5 = 1
 	if allclose(Q.CPT[False], 0, atol=.0001):

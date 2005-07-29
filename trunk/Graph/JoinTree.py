@@ -1,4 +1,5 @@
 from Graph import *
+from DiscreteDistribution import *
 
 class JoinTree( Graph ):
         
@@ -9,6 +10,7 @@ class JoinTree( Graph ):
                 
                 Graph.__init__( self, clique )
                 self.initialized = False
+                self.likelihoods = []
         
         def initCliquePotentials( self, variables ):
                 #if the join tree was created we are guaranteed to have a parent cluster
@@ -36,6 +38,26 @@ class JoinTree( Graph ):
                         for sepset in clique.sepsets:
                                 sepset.reinitPotential()
                 self.initCliquePotentials( variables )
+        
+        def enterEvidence( self, evidence, nodes ):
+                mask = evidence != -1
+                values = evidence[mask]
+                nodeIndices = array( nodes )[mask]
+                
+                for (nodeI, value) in zip( nodeIndices, values ):
+                        #perfect example of why attr CPT needs to be renamed
+                        node = nodes[nodeI]
+                        clique = node.clique
+                        axis = [clique.nodes.index( node )]
+                        potentialMask = DiscreteDistribution(zeros( [clique.CPT.dims], type=Float ), node.nodeSize)
+                        potentialMask.setMultipleValues( array([value]), axis, 1 )
+                        clique.CPT.CPT *= potentialMask        
+                        
+                        
+                        
+                        
+                
+                
                                 
                         
                 

@@ -27,7 +27,7 @@ class Clique( BayesNode ):
                         self.CPT.setMultipleValues( seq, cliqueAxes, values )
         
         def reinitPotential( self ):
-                self.CPT = DiscreteDistribution( ones([node.ns for node in self.nodes]), self.nodes[o].ns )
+                self.CPT = DiscreteDistribution( ones([node.nodeSize for node in self.nodes]), self.nodes[0].nodeSize )
         
         def contains( self, nodes ):
                 isIn = True

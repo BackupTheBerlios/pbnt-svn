@@ -35,8 +35,10 @@ class JunctionTreeEngine( InferenceEngine ):
 		#of X that are consitent with R and sum them
 		#absorption identify the values of Y that are consisten with X (through sepset R)
 		#and multiply each element and set Y to be that result (for pass from X to Y)
-		if not self.joinTree.initialized:
-			self.joinTree.reInitialize( self.bnet.nodes )
+		#if not self.joinTree.initialized:
+		self.joinTree.reInitialize( self.bnet.nodes )
+		
+		self.joinTree.enterEvidence( self.evidence, self.bnet.nodes )
 		self.globalPropagation()
 		
 		#assuming no evidence
@@ -46,6 +48,7 @@ class JunctionTreeEngine( InferenceEngine ):
 			for value in range( node.nodeSize ):
 				#axis arg not needed, but nice for clarity
 				Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=0 )
+			Q.normalise()
 			distributions.append( Q )
 		
 		return distributions
@@ -106,7 +109,7 @@ class JunctionTreeEngine( InferenceEngine ):
 			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
 			cluster.CPT.setMultipleValues( index, clusterAxes, newValues )
-			
+	
 
 	def BuildJoinTree ( self ):
 		#create the moral graph
