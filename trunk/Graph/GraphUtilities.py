@@ -1,4 +1,4 @@
-
+from numarray import *
 
 
 def connectNodes( node1, node2 ):
@@ -35,6 +35,34 @@ def missingEdges( node ):
 				edges.append( (i,j+i+1) )
 	return edges
 				
-		
+				
+def generateArrayIndex( dimsToIter, axesToIter, constValues, constAxes ):
+	totalNumAxes = len( axesToIter ) + len( constAxes )
+	indexList = [array([]) for dim in range( totalNumAxes )]
+	
+	indexList = generateArrayIndexHelper( 0, array(dimsToIter), array(axesToIter), indexList )
+	
+	nIndices = product(array( dimsToIter ))
+	for (val, axis) in zip( constValues, constAxes ):
+		indexList[axis] = ones([nIndices]) * val
+	
+	return indexList
+
+def generateArrayIndexHelper( val, dims, axes, indexList ):
+	#if we have iterated through all of the dimensions
+	if len( dims ) == 0:
+		return indexList
+	
+	#if we have iterated through all of the values
+	if val == dims[0]:
+		return indexList
+	
+	indexList[axes[0]] = concatenate( (indexList[axes[0]], ones([product(dims[1:])]) * val) )
+	indexList = generateArrayIndexHelper( 0, dims[1:], axes[1:], indexList )
+	return generateArrayIndexHelper( val+1, dims, axes, indexList )
+	
+	
+	
+	
 
 	

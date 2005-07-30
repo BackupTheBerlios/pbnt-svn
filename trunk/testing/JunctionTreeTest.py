@@ -19,7 +19,11 @@ def test():
 	engine = JunctionTreeEngine(water)
 	
 	test0 = 1
-	Q = engine.maginal([water.nodes[sprinkler]])[0]
+	Q = engine.marginal([water.nodes[sprinkler]])[0]
+	
+	Q = engine.marginal([water.nodes[sprinkler]])[0]
+	
+	Q = engine.marginal([water.nodes[wetgrass]])[0]
 	
 	if allclose(Q.CPT[False], .7, atol=.0001):
 		print "Test 0A: OK\n"

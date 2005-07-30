@@ -6,7 +6,7 @@ class EnumerationEngine(InferenceEngine):
 
 	def marginal ( self, queryVar ):
 		ns = self.bnet.ns(queryVar)
-		distributionTable = zeros([ns], type=Float)
+		distributionTable = zeros([ns], type=Float32)
 		Q = DiscreteDistribution(distributionTable, ns)
 		if not (self.evidence[queryVar] == -1):
 			for val in range( ns ):

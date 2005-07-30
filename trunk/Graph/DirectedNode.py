@@ -3,8 +3,8 @@ from Node import *
 
 class DirectedNode( Node ):
         
-        def __init__( self ):
-                self.neighbors = []
+        def __init__( self, index=-1, name="anonymous" ):
+                Node.__init__( self, index, name )
                 self.parents = []
                 self.children = []
         

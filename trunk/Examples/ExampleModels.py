@@ -15,10 +15,10 @@ def water():
   rain = 2
   wetgrass = 3
   
-  cNode = BayesNode( 2 )
-  sNode = BayesNode( 2 )
-  rNode = BayesNode( 2 )
-  wNode = BayesNode( 2 )
+  cNode = BayesNode( 2, 0, "cloudy" )
+  sNode = BayesNode( 2, 1, "sprinkler" )
+  rNode = BayesNode( 2, 2, "rain" )
+  wNode = BayesNode( 2, 3, "wetgrass" )
 
   #cloudy
   cNode.addChild( sNode )
@@ -40,25 +40,25 @@ def water():
   
   #create distributions
   #cloudy distribution
-  cDistribution = DiscreteDistribution(array([0.5, 0.5], type=Float), cNode.nodeSize)
+  cDistribution = DiscreteDistribution(array([0.5, 0.5], type=Float32), cNode.nodeSize)
   cNode.setCPT( cDistribution )
   
   #sprinkler
-  dist = zeros([cNode.nodeSize,sNode.nodeSize], type=Float)
+  dist = zeros([cNode.nodeSize,sNode.nodeSize], type=Float32)
   dist[0,] = 0.5
   dist[1,] = [0.9,0.1]
   sDistribution = DiscreteDistribution(dist, sNode.nodeSize)
   sNode.setCPT( sDistribution )
   
   #rain
-  dist = zeros([cNode.nodeSize, rNode.nodeSize], type=Float)
+  dist = zeros([cNode.nodeSize, rNode.nodeSize], type=Float32)
   dist[0,] = [0.8,0.2]
   dist[1,] = [0.2,0.8]
   rDistribution = DiscreteDistribution(dist, rNode.nodeSize)
   rNode.setCPT( rDistribution )
   
   #wetgrass
-  dist = zeros([sNode.nodeSize, rNode.nodeSize, wNode.nodeSize], type=Float)
+  dist = zeros([sNode.nodeSize, rNode.nodeSize, wNode.nodeSize], type=Float32)
   dist[0,0,] = [1.0,0.0]
   dist[1,0,] = [0.1,0.9]
   dist[0,1,] = [0.1,0.9]

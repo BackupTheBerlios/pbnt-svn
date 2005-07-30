@@ -16,7 +16,7 @@ class Sepset( Node ):
                 
                 self.neighbors = [cliqueX, cliqueY]
                 self.dims = [x.nodeSize for x in self.nodes]
-                self.potential = DiscreteDistribution( ones(self.dims, type=Float), self.nodes[0].nodeSize )
+                self.potential = DiscreteDistribution( ones(self.dims, type=Float32), self.nodes[0].nodeSize )
                 
                 self.axis = range( self.potential.nDims )
                 self.mu = SequenceGenerator( self.dims )
@@ -41,7 +41,7 @@ class Sepset( Node ):
                 return False
         
         def reinitPotential( self ):
-                self.potential = DiscreteDistribution( ones(self.dims, type=Float), self.nodes[0].nodeSize )
+                self.potential = DiscreteDistribution( ones(self.dims, type=Float32), self.nodes[0].nodeSize )
                         
                 
                 

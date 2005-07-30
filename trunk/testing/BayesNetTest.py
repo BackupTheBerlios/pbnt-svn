@@ -26,22 +26,22 @@ def test():
 
   #create distributions
   #cloudy distribution
-  cDistribution = DiscreteDistribution(array([0.5, 0.5], type=Float), nodeSizes[cloudy])
+  cDistribution = DiscreteDistribution(array([0.5, 0.5], type=Float32), nodeSizes[cloudy])
   
   #sprinkler
-  dist = zeros([nodeSizes[cloudy],nodeSizes[sprinkler]], type=Float)
+  dist = zeros([nodeSizes[cloudy],nodeSizes[sprinkler]], type=Float32)
   dist[0,] = 0.5
   dist[1,] = [0.9,0.1]
   sDistribution = DiscreteDistribution(dist, nodeSizes[sprinkler])
   
   #rain
-  dist = zeros([nodeSizes[cloudy], nodeSizes[rain]], type=Float)
+  dist = zeros([nodeSizes[cloudy], nodeSizes[rain]], type=Float32)
   dist[0,] = [0.8,0.2]
   dist[1,] = [0.2,0.8]
   rDistribution = DiscreteDistribution(dist, nodeSizes[rain])
   
   #wetgrass
-  dist = zeros([nodeSizes[sprinkler], nodeSizes[rain], nodeSizes[wetgrass]], type=Float)
+  dist = zeros([nodeSizes[sprinkler], nodeSizes[rain], nodeSizes[wetgrass]], type=Float32)
   dist[0,0,] = [1.0,0.0]
   dist[1,0,] = [0.1,0.9]
   dist[0,1,] = [0.1,0.9]

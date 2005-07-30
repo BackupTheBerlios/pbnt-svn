@@ -17,7 +17,7 @@ class JoinTree( Graph ):
                 #if there is no such cluster, we must be one tree in a forest and it must be in
                 #another tree
                 for v in variables:
-                        famV = [v] + v.parents
+                        famV = v.parents + [v]
                         for clique in self.nodes:
                                 if clique.contains( famV ):
                                         v.clique = clique
@@ -42,16 +42,24 @@ class JoinTree( Graph ):
         def enterEvidence( self, evidence, nodes ):
                 mask = evidence != -1
                 values = evidence[mask]
-                nodeIndices = array( nodes )[mask]
+                nodeIndices = array(range(len( nodes )))[mask]
                 
                 for (nodeI, value) in zip( nodeIndices, values ):
                         #perfect example of why attr CPT needs to be renamed
                         node = nodes[nodeI]
                         clique = node.clique
                         axis = [clique.nodes.index( node )]
-                        potentialMask = DiscreteDistribution(zeros( [clique.CPT.dims], type=Float ), node.nodeSize)
-                        potentialMask.setMultipleValues( array([value]), axis, 1 )
-                        clique.CPT.CPT *= potentialMask        
+                        axesToIter = [i for i in range(clique.CPT.nDims) if not i == axis]
+                        potentialMask = DiscreteDistribution(zeros( array(clique.CPT.dims), type=Float32 ), node.nodeSize)
+                        if len( axesToIter ) > 0:
+                                dimsToIter = array(clique.CPT.dims)[axesToIter]
+                                indices = generateArrayIndex( dimsToIter, axesToIter, [value], [axis] )
+                                potentialMask.CPT.setValue( indices, 1 )
+                        else:
+                                potentialMask.CPT.setValue( array([value]), 1, axes=axis)
+                        
+                        clique.CPT.CPT *= potentialMask.CPT        
+                        
                         
                         
                         

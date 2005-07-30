@@ -15,7 +15,7 @@ class PriorityQueue:
                 return self
         
         def next( self ):
-                if len( self.queue ) == 0:
+                if self.i == len( self.queue ) - 1:
                         raise StopIteration
                 self.i += 1
                 return self.queue[self.i]

@@ -8,12 +8,14 @@ class SequenceGenerator:
 		self.value = zeros(size( iterObjs ))
 		if len( self.value ) > 0:
 			self.value[0] -= 1
+		self.start = self.value.copy()
 	
 	def __iter__( self ):
 		return self
 	
 	def next( self ):
 		if all( self.value == self.stop ):
+			self.value = self.start.copy()
 			raise StopIteration
 		
 		for i in range(size( self.stop )):

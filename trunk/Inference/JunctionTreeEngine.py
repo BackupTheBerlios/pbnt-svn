@@ -28,15 +28,15 @@ class JunctionTreeEngine( InferenceEngine ):
 		#self.joinTree.reInitialize( self.bnet.nodes )
 	
 	
-	def maginal( self, query ):
+	def marginal( self, query ):
 		#ASSUMPTION: BuildJoinTree initializes potentials
 		#do global propagation
 		#for each message pass, maginalize over a X which means to find the instantiations
 		#of X that are consitent with R and sum them
 		#absorption identify the values of Y that are consisten with X (through sepset R)
 		#and multiply each element and set Y to be that result (for pass from X to Y)
-		#if not self.joinTree.initialized:
-		self.joinTree.reInitialize( self.bnet.nodes )
+		if not self.joinTree.initialized:
+			self.joinTree.reInitialize( self.bnet.nodes )
 		
 		self.joinTree.enterEvidence( self.evidence, self.bnet.nodes )
 		self.globalPropagation()
@@ -44,7 +44,7 @@ class JunctionTreeEngine( InferenceEngine ):
 		#assuming no evidence
 		distributions = []
 		for node in query:
-			Q = DiscreteDistribution( zeros([node.nodeSize], type=Float), node.nodeSize )
+			Q = DiscreteDistribution( zeros([node.nodeSize], type=Float32), node.nodeSize )
 			for value in range( node.nodeSize ):
 				#axis arg not needed, but nice for clarity
 				Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=0 )
@@ -94,21 +94,28 @@ class JunctionTreeEngine( InferenceEngine ):
 		sepsetAxis = sepset.axis
 		for index in mu:
 			#get the relevant entries out of the cluster potential
-			values = cluster.CPT.getValue( index, clusterAxes )
+			values = array([cluster.CPT.getValue( index, clusterAxes )])
 			sepset.potential.setValue( index, values.sum(), axes=sepsetAxis )
 				
 	def absorb( self, cluster, sepset, oldPotential ):
 		mu = sepset.mu
 		sepsetAxis = sepset.axis
 		clusterAxes = sepset.cliqueAxes( cluster )
-		potential = sepset.potential.CPT / oldPotential
+		sepset.potential.CPT /= oldPotential
+		potential = sepset.potential
+		axesToIter = [axis for axis in range(cluster.CPT.nDims) if not axis in clusterAxes]
 		#multiply and set potential, assumes that there is only one axis of difference between
 		#sepset and cluster
 		for index in mu:
 			sepsetValue = potential.getValue( index, sepsetAxis )
 			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
-			cluster.CPT.setMultipleValues( index, clusterAxes, newValues )
+			if len( axesToIter ) > 0:
+                                dimsToIter = array(cluster.CPT.dims)[axesToIter]
+                                indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
+                                cluster.CPT.setValue( indices, newValues )
+                        else:
+                                cluster.CPT.setValue( index, newValues, axes=clusterAxes)
 	
 
 	def BuildJoinTree ( self ):
