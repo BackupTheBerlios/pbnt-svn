@@ -1,5 +1,6 @@
 from numarray import *
 from SequenceGenerator import *
+import GraphUtilities
 
 class DiscreteDistribution:
 #to do listforthis class
@@ -16,24 +17,28 @@ class DiscreteDistribution:
 	
 	def setValue( self, indices, value, axes=-1 ):
 		if axes == -1:
-			if self.nDims == 1:
-				axes = 0
-			else:
-				axes = range( self.nDims )
-		elif isinstance( indices, ArrayType ): 
-			#because of a bug in numarray have to reorder indices and axis
-			#should be able to do this with some sort of in place sort, but not sure how
-			oldIndices = indices.copy()
-			for i in range( self.nDims ):
-				indices[i] = oldIndices[axes==i]
-		##if value is an array of values, then we need to flatten, but if just a number
-		#then this will raise an exception
-		#put( self.CPT, indices, value )
+			#if self.nDims == 1:
+				#axes = 0
+			#else:
+				#axes = range( self.nDims )
+			axes = range( self.nDims )
+		#elif isinstance( indices, ArrayType ): 
+			##because of a bug in numarray have to reorder indices and axis
+			##should be able to do this with some sort of in place sort, but not sure how
+			#oldIndices = indices.copy()
+			#for i in range( self.nDims ):
+				#indices[i] = oldIndices[axes==i]
+		###if value is an array of values, then we need to flatten, but if just a number
+		##then this will raise an exception
+		##put( self.CPT, indices, value )
 		
-		try:
-			put( self.CPT, indices, value.flat, axis=axes )
-		except:
-			put( self.CPT, indices, value, axis=axes )
+		#try:
+			#put( self.CPT, indices, value.flat, axis=axes )
+		#except:
+			#put( self.CPT, indices, value, axis=axes )
+		
+		indexStr = GraphUtilities.generateSetArrayCommand( indices, axes, self.nDims )
+		exec 'self.CPT' + indexStr + ' = ' + repr( value )
 	
 	def getValue( self, varAndParentValsArray, axes=-1 ):
 		if axes == -1:

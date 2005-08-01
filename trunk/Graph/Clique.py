@@ -30,12 +30,13 @@ class Clique( BayesNode ):
                         cliqueValues = self.CPT.getValue( seq, cliqueAxes )
                         variableValues = variable.CPT.getValue( seq )
                         values = cliqueValues * variableValues
-                        if len( axesToIter ) > 0:
-                                dimsToIter = array(self.CPT.dims)[axesToIter]
-                                indices = generateArrayIndex( dimsToIter, axesToIter, seq, cliqueAxes )
-                        else: 
-                                indices = seq
-                        self.CPT.setValue( indices, values )        
+                        self.CPT.setValue( seq, values, cliqueAxes )
+                        #if len( axesToIter ) > 0:
+                                #dimsToIter = array(self.CPT.dims)[axesToIter]
+                                #indices = generateArrayIndex( dimsToIter, axesToIter, seq, cliqueAxes )
+                        #else: 
+                                #indices = seq
+                        #self.CPT.setValue( indices, values )        
                         #if len( axesToIter ) > 0:
                         
                         #else:

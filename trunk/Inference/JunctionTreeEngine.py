@@ -66,13 +66,13 @@ class JunctionTreeEngine( InferenceEngine ):
 		self.distributeEvidence( startCluster )
 	
 	def collectEvidence( self, prevCluster, currentCluster, sepset, isStart ):
-		if not currentCluster.visited:
-			currentCluster.visited = 1
-			for (neighbor, sep) in zip(currentCluster.neighbors, currentCluster.sepsets):
+		currentCluster.visited = 1
+		for (neighbor, sep) in zip(currentCluster.neighbors, currentCluster.sepsets):
+			if not neighbor.visited:
 				self.collectEvidence( currentCluster, neighbor, sep, 0 )
 			
-			if not isStart:
-				self.passMessage( currentCluster, prevCluster, sepset )
+		if not isStart:
+			self.passMessage( currentCluster, prevCluster, sepset )
 	
 	def distributeEvidence( self, cluster ):
 		cluster.visited = 1
@@ -103,21 +103,23 @@ class JunctionTreeEngine( InferenceEngine ):
 		clusterAxes = sepset.cliqueAxes( cluster )
 		sepset.potential.CPT /= oldPotential
 		potential = sepset.potential
-		axesToIter = [axis for axis in range(cluster.CPT.nDims) if not axis in clusterAxes]
+		#saxesToIter = [axis for axis in range(cluster.CPT.nDims) if not axis in clusterAxes]
 		#multiply and set potential, assumes that there is only one axis of difference between
 		#sepset and cluster
 		for index in mu:
 			sepsetValue = potential.getValue( index, sepsetAxis )
 			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
-			if len( axesToIter ) > 0:
-				dimsToIter = array(cluster.CPT.dims)[axesToIter]
-				indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
-				#flatindices = convertIndex( indices )
-				cluster.CPT.setValue( indices, newValues, clusterAxes )
-			else:
-				#flatindex = sum( index * array([cluster.indexWeights[cA] for cA in clusterAxes]) )
-				cluster.CPT.setValue( index, newValues, clusterAxes )
+			cluster.CPT.setValue( index, newValues, clusterAxes )
+			#if len( axesToIter ) > 0:
+				#dimsToIter = array(cluster.CPT.dims)[axesToIter]
+				#indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
+				##flatindices = convertIndex( indices )
+				#cluster.CPT.setValue( indices, newValues, clusterAxes )
+			#else:
+				##flatindex = sum( index * array([cluster.indexWeights[cA] for cA in clusterAxes]) )
+				#cluster.CPT.setValue( index, newValues, clusterAxes )
+			
 	
 
 	def BuildJoinTree ( self ):
