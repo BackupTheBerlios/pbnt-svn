@@ -2,7 +2,7 @@ from BayesNet import *
 from DiscreteDistribution import *
 from numarray import *
 from BayesNode import *
-import numarray.objects as obj 
+import numarray.objects as obj
  
  
 def water():

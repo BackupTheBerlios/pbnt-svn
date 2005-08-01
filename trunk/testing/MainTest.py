@@ -13,7 +13,7 @@ Usuccess = UtilitiesTest.test()
 Bsuccess = BayesNetTest.test()
 
 
-if all(Bsuccess) and all(Esuccess) and all(Usuccess):# and all(JTsuccess):
+if alltrue(Bsuccess) and alltrue(Esuccess) and alltrue(Usuccess):# and alltrue(JTsuccess):
   print "ALL TESTS SUCCESSFUL"
 else:
   print "BayesNet Failed AT: %s\n", (where(Bsuccess==0)[0])

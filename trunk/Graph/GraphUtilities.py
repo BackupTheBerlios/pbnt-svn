@@ -37,6 +37,8 @@ def missingEdges( node ):
 				
 				
 def generateArrayIndex( dimsToIter, axesToIter, constValues, constAxes ):
+	if len( axesToIter ) == 0:
+		return constValues
 	totalNumAxes = len( axesToIter ) + len( constAxes )
 	indexList = [array([]) for dim in range( totalNumAxes )]
 	
@@ -46,7 +48,7 @@ def generateArrayIndex( dimsToIter, axesToIter, constValues, constAxes ):
 	for (val, axis) in zip( constValues, constAxes ):
 		indexList[axis] = ones([nIndices]) * val
 	
-	return indexList
+	return array(indexList)
 
 def generateArrayIndexHelper( val, dims, axes, indexList ):
 	#if we have iterated through all of the dimensions
@@ -62,7 +64,10 @@ def generateArrayIndexHelper( val, dims, axes, indexList ):
 	return generateArrayIndexHelper( val+1, dims, axes, indexList )
 	
 	
-	
+def convertIndex( baseIndex, weights ):
+	nAxes = len( baseIndex )
+	nIndex = len( baseIndex[0] )
+	return sum(baseIndex * reshape(repeat( weights, nIndex ), (nAxes, nIndex)), axis=0)
 	
 
 	

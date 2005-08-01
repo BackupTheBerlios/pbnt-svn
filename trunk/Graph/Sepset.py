@@ -11,11 +11,13 @@ class Sepset( Node ):
                 self.cliqueX = cliqueX
                 self.cliqueY = cliqueY
                 self.nodes = utilities.intersect( cliqueX.nodes, cliqueY.nodes )
+                self.nodes.sort()
                 self.mass = len( self.nodes )
                 self.cost = product(array( [node.nodeSize for node in cliqueX.nodes] )) + product(array( [node.nodeSize for node in cliqueY.nodes] ))
                 
                 self.neighbors = [cliqueX, cliqueY]
                 self.dims = [x.nodeSize for x in self.nodes]
+                self.indexWeights = array([product(self.dims[i+1:]) for i in range(len( self.dims ))])
                 self.potential = DiscreteDistribution( ones(self.dims, type=Float32), self.nodes[0].nodeSize )
                 
                 self.axis = range( self.potential.nDims )

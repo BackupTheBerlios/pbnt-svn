@@ -20,8 +20,16 @@ class DiscreteDistribution:
 				axes = 0
 			else:
 				axes = range( self.nDims )
-		#if value is an array of values, then we need to flatten, but if just a number
+		elif isinstance( indices, ArrayType ): 
+			#because of a bug in numarray have to reorder indices and axis
+			#should be able to do this with some sort of in place sort, but not sure how
+			oldIndices = indices.copy()
+			for i in range( self.nDims ):
+				indices[i] = oldIndices[axes==i]
+		##if value is an array of values, then we need to flatten, but if just a number
 		#then this will raise an exception
+		#put( self.CPT, indices, value )
+		
 		try:
 			put( self.CPT, indices, value.flat, axis=axes )
 		except:

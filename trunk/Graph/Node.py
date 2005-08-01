@@ -10,6 +10,9 @@ class Node:
                 #this is a little messy, but need a back reference to the graph
                 self.index = index
                 self.name = name
+        
+        def __lt__( self, other ):
+                return self.index < other.index
                        
         def addNeighbor( self, node ):
                 #this is a hack to check if node == self, fix later

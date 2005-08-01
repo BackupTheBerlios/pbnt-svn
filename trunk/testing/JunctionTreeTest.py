@@ -19,6 +19,7 @@ def test():
 	engine = JunctionTreeEngine(water)
 	
 	test0 = 1
+	Q = engine.marginal([water.nodes[wetgrass]])[0]
 	Q = engine.marginal([water.nodes[sprinkler]])[0]
 	
 	Q = engine.marginal([water.nodes[sprinkler]])[0]
@@ -44,7 +45,7 @@ def test():
 	Q = engine.maginal([water.nodes[wetgrass]])[0]
 	
 	test1 = 1
-	if all(engine.evidence == array([0,-1,1,-1])):
+	if alltrue(engine.evidence == array([0,-1,1,-1])):
 		print "Test 1: OK\n"
 	else:
 		test1 = 0
@@ -148,7 +149,7 @@ def testMoral():
 	correctMoral[rain, sprinkler] = 1
 	
 	test1 = 1
-	if all(moral == correctMoral):
+	if alltrue(moral == correctMoral):
 		print "Test 1: OK\n"
 	else:
 		test1 = 0

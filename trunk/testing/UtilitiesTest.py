@@ -4,6 +4,7 @@ from numarray import *
 
 def test():
   #test myFloatEQ (which is now deprecated, use allclose from numarray
+
   test1 = 1
   if myFloatEQ(0.055000000000000014, 0.0550):
     print "Test 1: OK\n"
@@ -26,19 +27,19 @@ def test():
   d = array([5,6,10,3,1,3,7,7])
 
   test3 = 1
-  if all(unique( (a, c) ) == a):
+  if alltrue(unique( (a, c) ) == a):
     print "\tTest3A: OK\n"
   else:
     test3 = 0
     print "\tTest3A: FAILED\n"
     
-  if all(unique( (a, b) ) == array([1,2,3,4,5,6])):
+  if alltrue(unique( (a, b) ) == array([1,2,3,4,5,6])):
     print "\tTest3B: OK\n"
   else:
     test3 = 0
     print "\tTest3B: FAILED\n"
   
-  if all(unique( (a, d) ) == array([1,2,3,5,6,10,7])):
+  if alltrue(unique( (a, d) ) == array([1,2,3,5,6,10,7])):
     print "\tTest3C: OK\n"
   else:
     test3 = 0

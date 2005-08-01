@@ -21,7 +21,7 @@
 		#greatly increase speed and efficiency of jtree inference
 		nodes = range( self.bnet.numNodes )
 		while len(nodes) > 2:
-			minCluster = Cluster( array([-1,-1,-1]), inf, array([]), inf )
+			minCluster = Cluster( array([-1,-1,-1]), ieee.inf, array([]), inf )
 			#we could optimize this more by saving the clusters of each node, and only
 			#recomputing clusters that are the neighbor of a newly removed node
 			for node in nodes:

@@ -14,7 +14,7 @@ class SequenceGenerator:
 		return self
 	
 	def next( self ):
-		if all( self.value == self.stop ):
+		if alltrue( self.value == self.stop ):
 			self.value = self.start.copy()
 			raise StopIteration
 		

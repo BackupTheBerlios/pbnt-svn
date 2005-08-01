@@ -1,5 +1,5 @@
 from numarray import *
-from numarray.ieeespecial import *
+import numarray.ieeespecial as ieee
 from utilities import *
 from Graph import *
 from Node import *
@@ -111,11 +111,13 @@ class JunctionTreeEngine( InferenceEngine ):
 			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
 			if len( axesToIter ) > 0:
-                                dimsToIter = array(cluster.CPT.dims)[axesToIter]
-                                indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
-                                cluster.CPT.setValue( indices, newValues )
-                        else:
-                                cluster.CPT.setValue( index, newValues, axes=clusterAxes)
+				dimsToIter = array(cluster.CPT.dims)[axesToIter]
+				indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
+				#flatindices = convertIndex( indices )
+				cluster.CPT.setValue( indices, newValues, clusterAxes )
+			else:
+				#flatindex = sum( index * array([cluster.indexWeights[cA] for cA in clusterAxes]) )
+				cluster.CPT.setValue( index, newValues, clusterAxes )
 	
 
 	def BuildJoinTree ( self ):
@@ -126,11 +128,10 @@ class JunctionTreeEngine( InferenceEngine ):
 		
 		#build the join tree from the cliques in triangulatedGraph
 		cliques = triangulatedGraph.cliques
-		forest = []
+		forest = [JoinTree( clique ) for clique in cliques]
 		sepsetHeap = PriorityQueue()
-		for i in range(len( cliques )):
-			forest.append(JoinTree( cliques[i] ))
-			for clique in cliques[i:]:
+		for i in range(len( cliques ) - 1):
+			for clique in cliques[i+1:]:
 				sepset = Sepset( cliques[i], clique )
 				sepsetHeap.insert( sepset )
 		

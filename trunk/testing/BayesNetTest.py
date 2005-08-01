@@ -1,5 +1,4 @@
 from numarray import *
-import numarray.objects as obj
 from BayesNet import *
 from DiscreteDistribution import *
 
@@ -48,7 +47,7 @@ def test():
   dist[1,1,] = [0.01,0.99]
   wgDistribution = DiscreteDistribution(dist, nodeSizes[wetgrass])
   
-  distributions = obj.array([cDistribution, sDistribution, rDistribution, wgDistribution])
+  distributions = array([cDistribution, sDistribution, rDistribution, wgDistribution])
   
   #create bayes net
   bnet = BayesNet(adjMat, nodeSizes, distributions)
@@ -60,7 +59,7 @@ def test():
   
   #test that it is the same
   test2 = 1
-  if all(bnet.graph == adjMat):
+  if alltrue(bnet.graph == adjMat):
     print "test 2: OK\n"
   else:
     test2 = 0

@@ -26,10 +26,15 @@ class JoinTree( Graph ):
                 self.initialized = True
         
         def merge( self, sepset, tree ):
-                clique = sepset.cliqueX
-                clique.addNeighbor( sepset.cliqueY )
-                clique.addSepset( sepset )
-                self.addNode( sepset.cliqueY )
+                cliqueX = sepset.cliqueX
+                cliqueY = sepset.cliqueY                
+                cliqueX.addNeighbor( cliqueY )
+                cliqueY.addNeighbor( cliqueX )
+                cliqueX.addSepset( sepset )
+                cliqueY.addSepset( sepset )
+                for node in tree.nodes:
+                        self.addNode( node )
+                #self.addNode( sepset.cliqueY )
         
         def reInitialize( self, variables ):
                 for clique in self.nodes:

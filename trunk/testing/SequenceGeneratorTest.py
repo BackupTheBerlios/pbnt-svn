@@ -10,7 +10,7 @@ def test():
                 seqs.append( seq.copy() )
         
         test1 = 1
-        if all( seqs[0] == array([0,0]) ):
+        if alltrue( seqs[0] == array([0,0]) ):
                 print "Test 1: OK\n"
         else:
                 test1 = 0
@@ -18,21 +18,21 @@ def test():
         
         
         test2 = 1
-        if all( seqs[1] == array([1,0]) ):
+        if alltrue( seqs[1] == array([1,0]) ):
                 print "Test 2: OK\n"
         else:
                 test2 = 0
                 print "Test 2: FAILED\n"
         
         test3 = 1
-        if all( seqs[2] == array([0,1]) ):
+        if alltrue( seqs[2] == array([0,1]) ):
                 print "Test 3: OK\n"
         else:
                 test3 = 0
                 print "Test 3: FAILED\n"
         
         test4 = 1
-        if all( seqs[3] == array([1,1]) ):
+        if alltrue( seqs[3] == array([1,1]) ):
                 print "Test 4: OK\n"
         else:
                 test4 = 0

@@ -1,5 +1,4 @@
 from BayesNode import *
-from CliqueNode import *
 from DiscreteDistribution import *
 from SequenceGenerator import *
 from GraphUtilities import *
@@ -10,6 +9,7 @@ class Clique( BayesNode ):
                 #nodes = [CliqueNode( node ) for node in nodes]
                 BayesNode.__init__( self, len( nodes ) )
                 self.nodes = nodes
+                self.nodes.sort()
                 self.neighbors = []
                 self.sepsets = []
                 self.CPT = DiscreteDistribution(ones([node.nodeSize for node in self.nodes], type=Float32), self.nodes[0].nodeSize )
@@ -33,9 +33,13 @@ class Clique( BayesNode ):
                         if len( axesToIter ) > 0:
                                 dimsToIter = array(self.CPT.dims)[axesToIter]
                                 indices = generateArrayIndex( dimsToIter, axesToIter, seq, cliqueAxes )
-                                self.CPT.setValue( indices, values )
-                        else:
-                                self.CPT.setValue( seq, values, axes=cliqueAxes)
+                        else: 
+                                indices = seq
+                        self.CPT.setValue( indices, values )        
+                        #if len( axesToIter ) > 0:
+                        
+                        #else:
+                                #self.CPT.setValue( seq, values, axes=cliqueAxes)
                         
         
         def reinitPotential( self ):

@@ -24,7 +24,7 @@ def test():
   Q = engine.marginal(wetgrass)
   
   test1 = 1
-  if all(engine.evidence == array([0,-1,1,-1])):
+  if alltrue(engine.evidence == array([0,-1,1,-1])):
     print "Test 1: OK\n"
   else:
     test1 = 0
