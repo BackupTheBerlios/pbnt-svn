@@ -42,7 +42,7 @@ def test():
 	engine.add_evidence(cloudy, False)
 	engine.add_evidence(rain, True)
 	
-	Q = engine.maginal([water.nodes[wetgrass]])[0]
+	Q = engine.marginal([water.nodes[wetgrass]])[0]
 	
 	test1 = 1
 	if alltrue(engine.evidence == array([0,-1,1,-1])):

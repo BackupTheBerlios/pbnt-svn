@@ -56,7 +56,7 @@ class JoinTree( Graph ):
                         axis = [clique.nodes.index( node )]
                         #axesToIter = [i for i in range(clique.CPT.nDims) if not i == axis]
                         potentialMask = DiscreteDistribution(zeros( array(clique.CPT.dims), type=Float32 ), node.nodeSize)
-                        potentialMask.CPT.setValue( value, 1, axes=axis )
+                        potentialMask.setValue( value, 1, axes=axis )
                         #if len( axesToIter ) > 0:
                                 #dimsToIter = array(clique.CPT.dims)[axesToIter]
                                 #indices = generateArrayIndex( dimsToIter, axesToIter, [value], [axis] )
