@@ -83,12 +83,13 @@ class JunctionTreeEngine( InferenceEngine ):
 	
 	def passMessage( self, fromCluster, toCluster, sepset ):
 		#projection
-		oldSepsetPotential = sepset.potential.CPT.copy()
-		self.project( fromCluster, sepset ) 
+		oldSepsetPotential = self.project( fromCluster, sepset ) 
 		#absorption
 		self.absorb( toCluster, sepset, oldSepsetPotential )
 	
 	def project( self, cluster, sepset ):
+		oldSepsetPotential = copy.deepcopy( sepset.potential )
+		#not using mu anymore but not ready to delete yet
 		mu = sepset.mu
 		clusterAxes = sepset.cliqueAxes( cluster )
 		sepsetAxis = sepset.axis
@@ -96,18 +97,20 @@ class JunctionTreeEngine( InferenceEngine ):
 			#get the relevant entries out of the cluster potential
 			values = array([cluster.CPT.getValue( index, clusterAxes )])
 			sepset.potential.setValue( index, values.sum(), axes=sepsetAxis )
+		return oldSepsetPotential
 				
 	def absorb( self, cluster, sepset, oldPotential ):
 		mu = sepset.mu
 		sepsetAxis = sepset.axis
 		clusterAxes = sepset.cliqueAxes( cluster )
-		sepset.potential.CPT /= oldPotential
-		potential = sepset.potential
+		zeroMask = oldPotential.CPT == 0
+		oldPotential.CPT = sepset.potential.CPT / oldPotential.CPT
+		oldPotential.CPT[zeroMask] = 0 
 		#saxesToIter = [axis for axis in range(cluster.CPT.nDims) if not axis in clusterAxes]
 		#multiply and set potential, assumes that there is only one axis of difference between
 		#sepset and cluster
 		for index in mu:
-			sepsetValue = potential.getValue( index, sepsetAxis )
+			sepsetValue = oldPotential.getValue( index, sepsetAxis )
 			clusterValues = cluster.CPT.getValue( index, clusterAxes )
 			newValues = clusterValues * sepsetValue
 			cluster.CPT.setValue( index, newValues, clusterAxes )

@@ -38,6 +38,7 @@ class DiscreteDistribution:
 			#put( self.CPT, indices, value, axis=axes )
 		
 		indexStr = GraphUtilities.generateSetArrayCommand( indices, axes, self.nDims )
+		#flatIndex = GraphUtilities.generateFlatIndex( indices, axes, self.nDims, self.dims )
 		exec 'self.CPT' + indexStr + ' = ' + repr( value )
 	
 	def getValue( self, varAndParentValsArray, axes=-1 ):

@@ -82,7 +82,6 @@ def generateSetArrayCommand( indices, axes, nDims ):
 	#we don't want the last comma, and we need to add a ]
 	indexStr = indexStr[:-1] + "]"
 	return indexStr
-		
-	
+
 
 	
