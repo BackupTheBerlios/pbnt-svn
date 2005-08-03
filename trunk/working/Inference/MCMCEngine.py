@@ -1,49 +1,45 @@
-class MCMCEngine inherits from InferenceEngine:
+from numarray import *
 
+class MCMCEngine( InferenceEngine ):
+	#implemented as described in Russell and Norvig
 	#X is a list of variables
 	#N is thenumber of samples
-	def marginal ( X, N ):
-		#create a list of arrays 
-		#where each arrary is 
-		#ns of the corresonding 
-		#query variable
-		Nx = [for x in X zeros(x.ns)]
+	def marginal ( self, X, N ):
+		Nx = [zeros( x.ns ) for x in X]
+		queryIndex = array([x.index for x in X])
 		state = self.evidence()
-		nonEv = setdiff(list(0:self.bnet().numVars()), nonzeros(self.evidence()))
+		nonEvMask = state == -1
+		nonEv = self.bnet.nodes[nonEvMask]
+		randMax = array([node.ns for node in nonEv])
+		#ASSUMPTION: zero is the minimum value
+		randMin = zeros([len( nonEv )])
+		#initialize nonEvidence variables to random values
+		state[nonEvMask] = randint( randMin, randMax )
 
-#could optimize this to be the values 
-#of x given their MB if it is specified, 
-#basically couldhave a better guess.
+		for i in range( N ):
+			#record the value of all of the query variables
+			Nx += state[queryIndex]
+			for node in nonEv:
+				val = sampleValueGivenMB(node, state)
+				#change the state to reflect new value of given variable
+				state[node.index] = val		
 
-		#initialize nonEV variables so that state is complete
-		for i in nonEv:
-			take(state,i) = round(rand(1,self.bnet().vars()[i].ns))
-
-#indexes for indexinginto Nx
-		rowIndex = array(1:size(Nx,1))
-
-		for 1 to N:
-			for i in [1:length(nonEv)]:
-#memoize MB calc at some point
-
-				val = valueGivenMB(nonEv[i], state)
-				take(state,nonEv[i]) = val
- 
-				take(Nx[i], val) += 1
-
-		return normalize(Nx)
+		for i in range(len( Nx )):
+			Nx[i].normalise()
+		
+		return Nx
 
 
-#sample the value of the given 
-#variable given the values of its 
-#markov blanket, might need to 
-#normalize return value
-def valueGivenMB ( varIndex , state):
-	MBval = 1
-	selfChildren = [varIndex] + self.bnet().children(varIndex)
-	for varI in selfChildren:
-		MBval *= self.bnet().vars()[varI].prob(take(state, self.bnet().parents(varI)))
-
-	return MBval
+	def sampleValueGivenMB( self, node, state ):
+		#init to be the prob dist of node given parents
+		parents = node.parents
+		parentsI = [p.index for p in parents]
+		#ASSUMPTION: node is arranged by parents
+		MBval = node.CPT.getValue( parentsI, axes=range( node.CPT.nDims - 1 ) )
+		children = node.children
+		for varI in selfChildren:
+			MBval *= self.bnet().vars()[varI].prob(take(state, self.bnet().parents(varI)))
+			
+		return MBval
 
 
