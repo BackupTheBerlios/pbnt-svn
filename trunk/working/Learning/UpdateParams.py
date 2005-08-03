@@ -1,21 +1,17 @@
 def update_params (bnet, trials):
-#destructive parameter update, 
-#basically set the bnet table to be the 
-#params that are specified in trials
-
-#assumes that bnet initializes all of its 
-#distributions to have a nonzero entries
-	for j in [0:size(trials,2)-1]:
-		ev = take(trials,j)
-		for i in [1:bnet.numberOfNodes()]:
-			indices=  bnet.parentIndices(i)
-			indices = [i] + indices
-			vals = take(state,indices)
-
-			bnet.var(i).updateValues(vals)
-
-	for var in bnet.vars():
-		var.normalize()
+#creates a table of counts for all of the variables assumes complete data. 
+#after generating table updates the distributions of each variable
+	for t in range(shape( trials )[1]): 
+		trial = trials[:,t]
+		for node in bnet.nodes:
+			values = trial[concatenate((node.parentIndex, array([node.index])))]
+			currentValue = node.CPT.getValue( values )
+			currentValue += 1
+			node.CPT.setValue( values, currentValue )
+	
+	for node in bnet.nodes:
+		node.CPT.normalise()
 		
+
 
 			 	
