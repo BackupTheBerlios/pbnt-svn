@@ -10,6 +10,9 @@ class BayesNode( DirectedNode ):
                 #to coerce it to change type in place on the fly
                 self.clique = -1
                 self.evidence = -1
-        
+                self.parentIndex = array( [node.name for node in self.parents] )
+                self.childIndex = array( [node.name for node in self.children] )
+                
+                
         def setCPT( self, CPT ):
                 self.CPT = CPT
