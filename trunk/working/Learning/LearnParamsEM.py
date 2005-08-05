@@ -8,6 +8,5 @@ def learnParamsEM( engine, trials, iterations ):
                 for evI in range(shape(trials)[1]):
                         ev = trials[:,evI]
                         engine.evidence = ev
-                        unobservedNodes = engine.bnet.nodes[ev == -1]
+                        blankDist = engine.marginal(engine.bnet.nodes[ev == -1])
                         
-                
