@@ -37,14 +37,17 @@ class DiscreteDistribution:
 		#except:
 			#put( self.CPT, indices, value, axis=axes )
 		
-		indexStr = GraphUtilities.generateSetArrayCommand( indices, axes, self.nDims )
+		indexStr = GraphUtilities.generateArrayStrIndex( indices, axes, self.nDims )
 		#flatIndex = GraphUtilities.generateFlatIndex( indices, axes, self.nDims, self.dims )
 		exec 'self.CPT' + indexStr + ' = ' + repr( value )
 	
 	def getValue( self, varAndParentValsArray, axes=-1 ):
 		if axes == -1:
-			axes = range( self.nDims )
-		return take(self.CPT, varAndParentValsArray, axis=axes)
+			axes = range(len(varAndParentValsArray))
+		indexStr = GraphUtilities.generateArrayStrIndex(varAndParentValsArray, axes, self.nDims)
+		values = eval('self.CPT' + indexStr)
+		return values
+		#return take(self.CPT, varAndParentValsArray, axis=axes)
 		
 	#def setMultipleValues( self, indices, axes, values ):
 		##have to do this special because the indices might be discontiguous
@@ -70,10 +73,11 @@ class DiscreteDistribution:
 		
 	
 	def normalise(self):
-		self.CPT[where(self.CPT == 0)] = 1
+		#self.CPT[where(self.CPT == 0)] = 1
 		c = self.CPT.sum()
-		self.CPT = self.CPT/c
-	
+		if not c == 0:
+			self.CPT = self.CPT/c
+			
 	def ns(self):
 		return self.ns
 	

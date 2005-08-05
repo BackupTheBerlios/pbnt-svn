@@ -3,13 +3,14 @@ import numarray.objects as obj
 import utilities as util
 from InferenceEngine import *
 import numarray.random_array as ra
+from DiscreteDistribution import *
 
 class MCMCEngine( InferenceEngine ):
 	#implemented as described in Russell and Norvig
 	#X is a list of variables
 	#N is thenumber of samples
 	def marginal ( self, X, N ):
-		Nx = [zeros( x.nodeSize ) for x in X]
+		Nx = [DiscreteDistribution(zeros(x.nodeSize, type=Float32), x.nodeSize) for x in X]
 		queryIndex = array([x.index for x in X])
 		state = self.evidence
 		nonEvMask = state == -1
@@ -22,7 +23,8 @@ class MCMCEngine( InferenceEngine ):
 
 		for i in range( N ):
 			#record the value of all of the query variables
-			Nx += state[queryIndex]
+			for (q, dist) in zip(queryIndex, Nx):
+				dist.CPT[state[q]] += 1
 			for node in nonEv:
 				val = self.sampleValueGivenMB(node, state)
 				#change the state to reflect new value of given variable
@@ -37,9 +39,9 @@ class MCMCEngine( InferenceEngine ):
 	def sampleValueGivenMB( self, node, state ):
 		#init to be the prob dist of node given parents
 		parents = node.parents
-		parentsI = [p.index for p in parents]
+		parentsI = array([p.index for p in parents])
 		#ASSUMPTION: node is arranged by parents
-		MBval = node.CPT.getValue( parentsI, axes=range( node.CPT.nDims - 1 ) )
+		MBval = node.CPT.getValue( state[parentsI], axes=range( node.CPT.nDims - 1 ) )
 		children = node.children
 		#want to save state
 		oldVal = state[node.index]

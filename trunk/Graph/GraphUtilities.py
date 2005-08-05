@@ -70,17 +70,26 @@ def convertIndex( baseIndex, weights ):
 	return sum(baseIndex * reshape(repeat( weights, nIndex ), (nAxes, nIndex)), axis=0)
 	
 
-def generateSetArrayCommand( indices, axes, nDims ):
+def generateArrayStrIndex( indices, axes, nDims ):
+	#indices = array(indices)
+	#axes = array(axes)
 	tmp = zeros([nDims]) + -1
-	tmp[axes] = indices
-	tmp = str( tmp ).replace( '-1', ':' )
+	if len(axes) > 0:
+		tmp[axes] = indices
+	#tmp = str( tmp ).replace( '-1', ':' )
 	indexStr = "["
-	for ch in tmp[1:-1]:
-		if not ch == " ":
-			indexStr += ch
-			indexStr += ","
-	#we don't want the last comma, and we need to add a ]
-	indexStr = indexStr[:-1] + "]"
+	for i in range(len(tmp) - 1):
+		if tmp[i] == -1:
+			indexStr += ':,'
+		else:
+			indexStr += str(tmp[i])
+			indexStr += ','
+	#now handle the last element
+	if tmp[-1] == -1:
+		indexStr += ':]'
+	else:
+		indexStr += str(tmp[-1])
+		indexStr += ']'
 	return indexStr
 
 
