@@ -1,4 +1,5 @@
 from numarray import *
+import numarray.random_array as ra
 
 
 # Miscellaneous utility functions for use with the rest of the BayesNet Package
@@ -46,5 +47,22 @@ def addToPriorityQueue( queue, element ):
 def intersect( L1, L2 ):
 	return [e for e in L1 if e in L2]
 		
+
+def sample(arr):
+	#given an array of probabilities return a randomly generated int with 
+	#probability equal to the values of array
+	nPossibleValues = len(arr)
+	rnum = ra.random()
+	probRange = arr[0]
+	i = 0
+	for prob in arr[1:]:
+		if rnum < probRange:
+			break
+		else:
+			probRange += prob
+			i += 1
+	
+	return i
+	
 
 

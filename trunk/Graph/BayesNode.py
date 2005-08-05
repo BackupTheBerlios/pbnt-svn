@@ -1,4 +1,5 @@
 from DirectedNode import *
+from numarray import *
 
 class BayesNode( DirectedNode ):
         
