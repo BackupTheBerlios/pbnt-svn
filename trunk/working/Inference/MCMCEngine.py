@@ -37,8 +37,8 @@ class MCMCEngine( InferenceEngine ):
 					state[node.index] = val
 					flipped += 1
 
-		#for i in range(len( Nx )):
-		#	Nx[i].normalise()
+		for i in range(len( Nx )):
+			Nx[i].normalise()
 		
 		return Nx
 

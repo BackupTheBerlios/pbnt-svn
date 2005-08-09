@@ -19,12 +19,8 @@ def test():
 	engine = JunctionTreeEngine(water)
 	
 	test0 = 1
-	Q = engine.marginal([water.nodes[wetgrass]])[0]
-	Q = engine.marginal([water.nodes[sprinkler]])[0]
 	
 	Q = engine.marginal([water.nodes[sprinkler]])[0]
-	
-	Q = engine.marginal([water.nodes[wetgrass]])[0]
 	
 	if allclose(Q.CPT[False], .7, atol=.0001):
 		print "Test 0A: OK\n"
@@ -38,7 +34,6 @@ def test():
 		test0 = 0
 		print "Test 0B: FAILED\n"
 	
-	#the following tests don't work yet
 	engine.add_evidence(cloudy, False)
 	engine.add_evidence(rain, True)
 	

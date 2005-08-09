@@ -71,8 +71,8 @@ def convertIndex( baseIndex, weights ):
 	
 
 def generateArrayStrIndex( indices, axes, nDims ):
-	#indices = array(indices)
-	#axes = array(axes)
+	indices = array(indices)
+	axes = array(axes)
 	tmp = zeros([nDims]) + -1
 	if len(axes) > 0:
 		tmp[axes] = indices

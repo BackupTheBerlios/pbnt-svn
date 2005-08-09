@@ -47,7 +47,7 @@ class JunctionTreeEngine( InferenceEngine ):
 			Q = DiscreteDistribution( zeros([node.nodeSize], type=Float32), node.nodeSize )
 			for value in range( node.nodeSize ):
 				#axis arg not needed, but nice for clarity
-				Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=0 )
+				Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=[0] )
 			Q.normalise()
 			distributions.append( Q )
 		
