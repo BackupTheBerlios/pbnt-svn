@@ -10,6 +10,7 @@ class MCMCEngine( InferenceEngine ):
 	#X is a list of variables
 	#N is thenumber of samples
 	def marginal ( self, X, N ):
+		flipped = 0
 		Nx = [DiscreteDistribution(zeros(x.nodeSize, type=Float32), x.nodeSize) for x in X]
 		queryIndex = array([x.index for x in X])
 		state = self.evidence
@@ -20,18 +21,24 @@ class MCMCEngine( InferenceEngine ):
 		randMin = zeros([len( nonEv )])
 		#initialize nonEvidence variables to random values
 		state[nonEvMask] = ra.randint( randMin, randMax )
+		#FOR DEBUGGING ONLY
+		valuesList = []
 
 		for i in range( N ):
+			valuesList += [state[3]]
 			#record the value of all of the query variables
-			for (q, dist) in zip(queryIndex, Nx):
-				dist.CPT[state[q]] += 1
+			if i > 100:
+				for (q, dist) in zip(queryIndex, Nx):
+					dist.CPT[state[q]] += 1
 			for node in nonEv:
 				val = self.sampleValueGivenMB(node, state)
 				#change the state to reflect new value of given variable
-				state[node.index] = val		
+				if not state[node.index] == val:
+					state[node.index] = val
+					flipped += 1
 
-		for i in range(len( Nx )):
-			Nx[i].normalise()
+		#for i in range(len( Nx )):
+		#	Nx[i].normalise()
 		
 		return Nx
 

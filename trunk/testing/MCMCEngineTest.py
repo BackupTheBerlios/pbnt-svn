@@ -19,7 +19,7 @@ def test():
 	engine = MCMCEngine(water)
 	
 	test0 = 1
-	Q = engine.marginal([water.nodes[wetgrass]], 1000)[0]
+	Q = engine.marginal([water.nodes[cloudy]], 1100)[0]
 	Q = engine.marginal([water.nodes[sprinkler]], 1000)[0]
 	
 	Q = engine.marginal([water.nodes[sprinkler]], 1000)[0]

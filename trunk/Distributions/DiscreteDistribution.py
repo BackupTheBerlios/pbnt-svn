@@ -73,10 +73,19 @@ class DiscreteDistribution:
 		
 	
 	def normalise(self):
-		#self.CPT[where(self.CPT == 0)] = 1
-		c = self.CPT.sum()
-		if not c == 0:
-			self.CPT = self.CPT/c
+		if self.nDims > 1:
+			seq = SequenceGenerator(self.dims[:-1])
+			for s in seq:
+				cArray = self.getValue(s, axes=self.dims[:-1])
+				c = cArray.sum()
+				if not c == 0:
+					cArray /= c
+					self.setValue(s, cArray, axes = self.dims[:-1])
+		else:
+			c = self.CPT.sum()
+			if not c == 0:
+				self.CPT /= c
+	
 			
 	def ns(self):
 		return self.ns
