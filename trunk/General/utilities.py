@@ -63,6 +63,16 @@ def sample(arr):
 			i += 1
 	
 	return i
+
+def updateCounts(nodes, counts, data):
+	assert(isinstance(bnet, Graph))
+	assert(isinstance(counts, ArrayType))
+	assert(isinstance(data, ArrayType))
+	for node in nodes:
+		count = counts[node.index]
+		indices = data[concatenate((node.parentIndex, array([node.index])))]
+		fIndex = flatIndex(indices, count.shape)
+		count.flat[fIndex] += 1
 	
 
 

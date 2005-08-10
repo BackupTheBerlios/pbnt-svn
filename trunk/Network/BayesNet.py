@@ -27,6 +27,15 @@ class BayesNet( DAG ):
 	
 	def indexOf( self, node ):
 		return self.nodes.index( node )
+	
+	def counts(self):
+		return array([node.CPT.CPT.copy() for node in self.nodes])
+	
+	def addCounts(self, counts):
+		for node in self.nodes:
+			node.CPT.CPT += counts[node.index]
+			node.CPT.normalise()
+
 
 		
 

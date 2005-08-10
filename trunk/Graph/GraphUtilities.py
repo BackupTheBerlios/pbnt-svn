@@ -92,5 +92,14 @@ def generateArrayStrIndex( indices, axes, nDims ):
 		indexStr += ']'
 	return indexStr
 
+def flatIndex(indices, shape):
+	assert(isinstance(indices, ArrayType))
+	assert(isinstance(shape, types.TupleType))	
+	flat = 0
+	for i in range(len(indices)):
+		flat += indices[i] * product(shape[i+1:])
+	
+	return flat
+
 
 	
