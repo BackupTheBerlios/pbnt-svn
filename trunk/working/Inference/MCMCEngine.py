@@ -13,7 +13,7 @@ class MCMCEngine( InferenceEngine ):
 		flipped = 0
 		Nx = [DiscreteDistribution(zeros(x.nodeSize, type=Float32), x.nodeSize) for x in X]
 		queryIndex = array([x.index for x in X])
-		state = self.evidence
+		state = self.evidence.copy()
 		nonEvMask = state == -1
 		nonEv = obj.array(self.bnet.nodes)[nonEvMask]
 		randMax = array([node.nodeSize for node in nonEv])
