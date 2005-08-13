@@ -3,6 +3,22 @@ from SequenceGenerator import *
 import GraphUtilities
 
 class DiscreteDistribution:
+    """ The basic class for a distribution, it defines a simple distribution over a set number of 
+    values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete 
+    distribution conditioned on other discrete distributions.
+    """
+    
+    def __init__(self, numValues):
+        self.table = zeros([numValues], type=Float32)
+        
+    def set_value(self, value, probability):
+        self.table[value] = probability
+    
+    def normalize(self):
+        self.table /= self.table.sum()
+        
+        
+class ConditionalDiscreteDistribution:
 #to do listforthis class
 #add different constructors
 #1.give fullCPT

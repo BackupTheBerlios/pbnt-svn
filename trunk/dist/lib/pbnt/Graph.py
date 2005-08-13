@@ -55,6 +55,7 @@ class BayesNet( DAG ):
 
     def parents (self, i):
         return self.nodes[i].parents
+    
     def parentIndices( self, i ):
         indices = []
         for node in self.nodes[i].parents:
@@ -66,6 +67,7 @@ class BayesNet( DAG ):
     
     def ns(self, i):
         return self.nodes[i].nodeSize
+    
     def CPTs( self, i ):
         return self.nodes[i].CPT
     
@@ -80,8 +82,7 @@ class BayesNet( DAG ):
             node.CPT.CPT += counts[node.index]
             node.CPT.normalise()
 
-
-        
+            
 class MoralGraph(Graph):
     
     def __init__(self, DAG):

@@ -1,71 +1,98 @@
+#Major Packages
 from numarray import *
 import numarray.ieeespecial as ieee
-import GraphUtilities
-from utilities import *
+
+#Local Project Modules
 from Graph import *
 from Node import *
-from BayesNet import *
-from InferenceEngine import *
-from PriorityQueue import *
-from JoinTree import *
-from Sepset import *
+from Utilities.Utilities import *
+import Utilities.GraphUtilities as GraphUtilities
 
+"""This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
+"""
 
 class InferenceEngine:
-    
+    """ This is the parent class of all inference engines.  It defines several very basic methods 
+    that are used by all inference engines.
+    """
     
     def __init__(self, bnet):
         self.bnet = bnet
         self.evidence = zeros(bnet.numNodes) + -1
 
-    def add_evidence ( self, varIndex, values ):
+    def init_evidence(self, evidence):
+        self.evidence = evidence
+        
+    def change_evidence ( self, varIndex, values ):
         self.evidence[varIndex] = values
     
     def marginal(self):
-        #all child classes must implement marginal()
         self.action()
 
-        
 
 class EnumerationEngine(InferenceEngine):
+    """ Enumeration Engine uses an unoptimized fully enumerate brute force method to compute the 
+    marginal of a query.  It also uses the standard constructor, init_evidence, and 
+    change_evidence methods.  In this engine, we use a hack.  We have to check and see if the 
+    variable is unobserved.  If it is not, then we know that the probability of that value is 
+    automatically 1.  We use this hack, because in order to do it properly, a table of likelihoods
+    that incorporates the evidence would have to be constructed, this is very costly.
+    """
 
-    def marginal ( self, queryVar ):
-        ns = self.bnet.ns(queryVar)
-        distributionTable = zeros([ns], type=Float32)
-        Q = DiscreteDistribution(distributionTable, ns)
-        if not (self.evidence[queryVar] == -1):
-            for val in range( ns ):
-                Q.setValue( val , 0 )
-            Q.setValue( self.evidence[queryVar], 1 )
-        else: 
-            for val in range( ns ):
-                self.add_evidence(queryVar, val)
-                Q.setValue(val, self.enumerateAll())
-            self.add_evidence(queryVar, -1)
-            Q.normalise()
-        return Q
+    def marginal ( self, nodes ):
+        # Compute the marginal for each node in nodes
+        distList = list()
+        for node in nodes:
+            ns = node.ns
+            # Create the return distribution.
+            Q = DiscreteDistribution(ns)
+            if self.evidence[node.index] == -1:
+                 for val in range(ns):
+                     prob = self.enumerate_all(node, val)
+                     Q.set_value(val, prob)
+            else:
+                val = self.evidence[node.index]
+                Q.set_value(val, 1)
+            Q.normalize()
+            distList += Q
+        return distList
+    
+    """ The following methods could be functions, but I made them private methods because they
+    are functions that should only be used internally to the class.
+    ADVICE: James, do you think these should remain as private methods or become function calls?
+    """
 
-    def enumerateAll (self):
+    def __enumerate_all (self, node, value):
+        """ We are going to iterate through all values of all non-evidence nodes. For each state
+        of the evidence we sum the probability of that state by the probabilities of all 
+        other states.
+        """
+        oldValue = self.evidence[node.index]
+        # Set the value of the query node to value, since we don't want to iterate over it.
+        self.change_evidence(node.index, value)
         nonEvidence = where(self.evidence == -1)[0]
         self.initialize(nonEvidence)
-        Q = self.probabilityOf(self.evidence)
+        # Get the probability of the initial state of all nodes.
+        prob = self.probability(self.evidence)
         while self.nextState(nonEvidence):
-            Q += self.probabilityOf(self.evidence)
-
+            prob += self.probability(self.evidence)
+        # Restore the state of evidence to its state at the beginning of enumerate_all.
         self.evidence[nonEvidence] = -1
+        self.change_evidence(node.index, oldValue)
         return Q
     
-    def initialize( self, nonEvidenceNodes ):
-        self.evidence[nonEvidenceNodes] = 0
+    def __initialize(self, nonEvidence):
+        self.evidence[nonEvidence] = 0
     
-    def nextState( self, nonEvidenceNodes ):
-        nodeSizes = []
-        for node in nonEvidenceNodes:
-            nodeSizes.append(self.bnet.ns( node ))
-        numberOfNodes = size(nonEvidenceNodes)
-        for (node, ns) in zip(nonEvidenceNodes, nodeSizes):
-            if self.evidence[node] == (ns - 1):
-                if node == nonEvidenceNodes[numberOfNodes - 1]:
+    def __next_state(self, nonEvidence):
+        # Generate the next possible state of the evidence.
+        numberOfNodes = len(nonEvidenceNodes)
+        for index in nonEvidence:
+            if self.evidence[index] == (self.bnet.nodes(index).nodeSize - 1):
+                # If the value of the node is its max value, then reset it.
+                if index == nonEvidence[numberOfNodes - 1]:
+                    # If we iterated through to the last nonEvidence node, and didn't find a new 
+                    # value, then we have visited every possible state.
                     return False
                 else:
                     self.evidence[node] = 0
@@ -73,14 +100,14 @@ class EnumerationEngine(InferenceEngine):
             else:
                 self.evidence[node] += 1
                 break
-            
         return True
         
-    def probabilityOf (self, state):
+    def __probability(self, state):
+        # Compute the probability of the state of the bayes net given the values of state.
         Q = 1
-        for (i) in range(size(state)):
+        for i in range(len(state)):
             vals = concatenate((state[self.bnet.parentIndices(i)], state[i]))
-            Q *= self.bnet.CPTs(i).getValue(vals)
+            Q *= self.bnet.nodes(i).getValue(vals)
         return Q
 
 
