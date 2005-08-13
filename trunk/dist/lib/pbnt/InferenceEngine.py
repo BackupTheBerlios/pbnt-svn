@@ -111,117 +111,157 @@ class EnumerationEngine(InferenceEngine):
         return Q
 
 
-class JunctionTreeEngine( InferenceEngine ):
-    #for reference please read, "Belief Networks: A Procedural Guide" by Cecil Huang and Adnan Darwiche (1994)
+class JunctionTreeEngine(InferenceEngine):
+    """ This implementation of the Junction Tree inference algorithm comes from "Belief Networks: 
+    A Procedural Guide" By Cecil Huang an Adnan Darwiche (1996).  See also Kevin Murhpy's PhD 
+    Dissertation.  Roughly this algorithm decomposes the given bayes net to a moral graph, 
+    triangulates the moral graph, and collects it into cliques and joins the cliques into a join 
+    tree.  The marginal is then computed from the constructed join tree.
+    """
 
     def __init__ (self, bnet):
+        # Still use the built in constructor, but then add on to it
         InferenceEngine.__init__(self, bnet)
-        #create the moral graph
-        moralGraph = MoralGraph( self.bnet )
-        #triangulate the graph
+        # Create the moral graph
+        moralGraph = MoralGraph(self.bnet)
+        # Triangulate the graph
         triangulatedGraph = TriangleGraph( moralGraph )
-        #build a join tree and initialize it
+        # Build a join tree and initialize it.
         self.joinTree = self.BuildJoinTree(triangulatedGraph)
     
+    def change_evidence(self, nodes, values):
+        """ Override parent's method because in a junction tree we have to perform an update or a 
+        retraction based on the changes to the evidence.
+        """
+        # 0 = no change, 1 = update, 2 = retract
+        isChange = 0
+        changedNodes = []
+        for (node, value) in zip(nodes, values):
+            # Make sure node has actually changed
+            if not self.evidence[node.index] == value:
+                changedNodes += node
+                # Check if node is retracted
+                if not self.evidence[node.index] == -1:
+                    isChange = 2
+                    break
+                else:
+                    isChange = 1
+        
+        if isChange == 1:
+            # Do a global update
+            for node in changedNodes:
+                # Update potential X and its likelihood with the new observation
+                # Then do global propagation (if only 1 cluster affected only have 
+                # to distribute evidence.
+        elif isChange == 2:
+            # Do a global retraction: Encode the new likelihoods (and do observation entry), 
+            # Reinitialize the join tree, do a Global propagation.
+                
     def marginal(self, query):
-        #ASSUMPTION: BuildJoinTree initializes potentials
-        #do global propagation
-        #for each message pass, maginalize over a X which means to find the instantiations
-        #of X that are consitent with R and sum them
-        #absorption identify the values of Y that are consisten with X (through sepset R)
-        #and multiply each element and set Y to be that result (for pass from X to Y)
+        # DELETE: When change_evidence is completed delete this.
         if not self.joinTree.initialized:
-            self.joinTree.reInitialize( self.bnet.nodes )
+            self.joinTree.re_initialize(self.bnet.nodes)
         
-        self.joinTree.enterEvidence( self.evidence, self.bnet.nodes )
-        self.globalPropagation()
+        self.joinTree.enter_evidence(self.evidence, self.bnet.nodes)
+        self.global_propagation()
+        # DELETE: End delete here
         
-        #assuming no evidence
         distributions = []
         for node in query:
-            Q = DiscreteDistribution( zeros([node.nodeSize], type=Float32), node.nodeSize )
-            for value in range( node.nodeSize ):
+            Q = DiscreteDistribution(zeros([node.nodeSize], type=Float32), node.nodeSize)
+            for value in range(node.nodeSize):
                 #axis arg not needed, but nice for clarity
-                Q.setValue( value, node.clique.CPT.getValue( [value], axes=[node.clique.nodes.index(node)] ).sum(), axes=[0] )
-            Q.normalise()
-            distributions.append( Q )
-        
+                prob = node.clique.CPT.getValue([value], axes=[node.clique.nodes.index(node)])
+                Q.setValue(value, prob.sum())
+            Q.normalize()
+            distributions.append(Q)
         return distributions
         
         
-    def globalPropagation( self ):
+    def global_propagation(self):
         self.joinTree.initialized = False
-        #arbitrarily pick a cluster
+        # Arbitrarily pick a cluster to be the root node, could be OPTIMIZED
         startCluster = self.joinTree.nodes[0]
-        
-        GraphUtilities.unmarkAllNodes( self.joinTree )
-        #we use 0 to denote that there was no prevCluster and therefore no potential or mu
-        self.collectEvidence( 0, startCluster, 0, True )
-        GraphUtilities.unmarkAllNodes( self.joinTree )
-        self.distributeEvidence( startCluster )
+        GraphUtilities.unmark_all_nodes(self.joinTree)
+        # We use 0 to denote that there was no prevCluster
+        self.collect_evidence(0, startCluster, 0, True)
+        GraphUtilities.unmark_all_nodes(self.joinTree)
+        self.distribute_evidence(startCluster)
     
-    def collectEvidence( self, prevCluster, currentCluster, sepset, isStart ):
+    def collect_evidence(self, prevCluster, currentCluster, sepset, isStart):
+        # In this stage we send messages from the outer nodes toward a root node.
         currentCluster.visited = 1
         for (neighbor, sep) in zip(currentCluster.neighbors, currentCluster.sepsets):
+            # Do a DFS search of the tree, only visiting unvisited nodes
             if not neighbor.visited:
-                self.collectEvidence( currentCluster, neighbor, sep, 0 )
-            
+                self.collect_evidence(currentCluster, neighbor, sep, 0)
         if not isStart:
-            self.passMessage( currentCluster, prevCluster, sepset )
+            # After we have found the leaf (or iterated over all neighbors) send a message
+            # back toward the root.
+            self.pass_message(currentCluster, prevCluster, sepset)
     
-    def distributeEvidence( self, cluster ):
+    def distribute_evidence(self, cluster):
+        # Send messages from root node out toward leaf nodes
         cluster.visited = 1
-        for (neighbor, sep) in zip( cluster.neighbors, cluster.sepsets ):
+        for (neighbor, sep) in zip(cluster.neighbors, cluster.sepsets):
+            # Perform DFS passing messages as we go from one node to the next
             if not neighbor.visited:
-                self.passMessage( cluster, neighbor, sep )
-                self.distributeEvidence( neighbor )
+                self.pass_message(cluster, neighbor, sep)
+                self.distribute_evidence(neighbor)
     
-    def passMessage( self, fromCluster, toCluster, sepset ):
-        #projection
-        oldSepsetPotential = self.project( fromCluster, sepset ) 
-        #absorption
+    def pass_message(self, fromCluster, toCluster, sepset):
+        # Project the fromCluster onto the sepset, oldSepsetPotential is the sepset's potential
+        # before it is affected by the internals of project
+        oldSepsetPotential = self.project(fromCluster, sepset) 
+        # Absorb the sepset into the toCluster
         self.absorb( toCluster, sepset, oldSepsetPotential )
     
-    def project( self, cluster, sepset ):
-        oldSepsetPotential = copy.deepcopy( sepset.potential )
-        #not using mu anymore but not ready to delete yet
+    def project(self, cluster, sepset):
+        # Marginalize the cluster given the variables in the sepset
+        oldSepsetPotential = copy.deepcopy(sepset.potential)
+        # mu defines all of the indices within sepset, we use clusterAxes and sepsetAxes
+        # to facilitate translation between these two domains.
+        # OPTIMIZE: would be optimal to have mu iterate over the smaller of the two: num 
+        # variables in sepset vs variables in cluster but not in sepset
         mu = sepset.mu
-        clusterAxes = sepset.cliqueAxes( cluster )
-        sepsetAxis = sepset.axis
+        # The axes within cluster that refer to the variables in sepset
+        clusterAxes = sepset.clique_axes(cluster)
+        # The sepset axes in the proper order to refer to its variables within the cluster
+        sepsetAxes = sepset.axis
         for index in mu:
-            #get the relevant entries out of the cluster potential
-            values = array([cluster.CPT.getValue( index, clusterAxes )])
-            sepset.potential.setValue( index, values.sum(), axes=sepsetAxis )
+            # Array of values that correspond to a : over the dimensions of cluster that are not in
+            # sepset.
+            values = cluster.CPT.getValue(index, clusterAxes)
+            # Sum the values, because the multiple values in cluster correspond to a single place
+            # in sepset.
+            sepset.potential.setValue(index, values.sum(), axes=sepsetAxes)
+        # We change the internal potential, but still need access to the old one, so return it.
         return oldSepsetPotential
                 
-    def absorb( self, cluster, sepset, oldPotential ):
+    def absorb(self, cluster, sepset, oldPotential):
+        # Divide sepset.potential (the newly affected potential) by oldPotential (the one 
+        # unaffected by project).  Then multiply the result by the cluster's potential.
         mu = sepset.mu
-        sepsetAxis = sepset.axis
+        # The sepset axes in the order that corresponds to cluster.
+        sepsetAxes = sepset.axis
+        # The axes of cluster that correspond to the variables in sepset.
         clusterAxes = sepset.cliqueAxes( cluster )
+        # This will set all values of the cluster potential to 0 that are not consistent with 
+        # the evidence.
         zeroMask = oldPotential.CPT == 0
+        # Division of the new and old potentials
         oldPotential.CPT = sepset.potential.CPT / oldPotential.CPT
+        # Get rid of inconsistent values.
         oldPotential.CPT[zeroMask] = 0 
-        #saxesToIter = [axis for axis in range(cluster.CPT.nDims) if not axis in clusterAxes]
-        #multiply and set potential, assumes that there is only one axis of difference between
-        #sepset and cluster
         for index in mu:
-            sepsetValue = oldPotential.getValue( index, sepsetAxis )
+            # Use mu to identify the elements of each potential that should be multiplied together.
+            sepsetValue = oldPotential.getValue( index, sepsetAxes )
             clusterValues = cluster.CPT.getValue( index, clusterAxes )
             newValues = clusterValues * sepsetValue
-            cluster.CPT.setValue( index, newValues, clusterAxes )
-            #if len( axesToIter ) > 0:
-                #dimsToIter = array(cluster.CPT.dims)[axesToIter]
-                #indices = generateArrayIndex( dimsToIter, axesToIter, index, clusterAxes )
-                ##flatindices = convertIndex( indices )
-                #cluster.CPT.setValue( indices, newValues, clusterAxes )
-            #else:
-                ##flatindex = sum( index * array([cluster.indexWeights[cA] for cA in clusterAxes]) )
-                #cluster.CPT.setValue( index, newValues, clusterAxes )
-            
-    
+            cluster.CPT.setValue( index, newValues, clusterAxes )    
 
+#############################  CONTINUE HERE ################################
     def BuildJoinTree (self, triangulatedGraph):
-        
         #build the join tree from the cliques in triangulatedGraph
         cliques = triangulatedGraph.cliques
         forest = [JoinTree( clique ) for clique in cliques]

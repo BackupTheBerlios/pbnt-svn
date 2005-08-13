@@ -179,7 +179,7 @@ class JoinTree(Graph):
             self.addNode( node )
         #self.addNode( sepset.cliqueY )
     
-    def reInitialize( self, variables ):
+    def re_initialize( self, variables ):
         for clique in self.nodes:
             clique.reinitPotential()
             #need to optimize the next part as is it does double the work it should
@@ -187,7 +187,7 @@ class JoinTree(Graph):
                 sepset.reinitPotential()
         self.initCliquePotentials( variables )
     
-    def enterEvidence( self, evidence, nodes ):
+    def enter_evidence( self, evidence, nodes ):
         mask = evidence != -1
         values = evidence[mask]
         nodeIndices = array(range(len( nodes )))[mask]

@@ -22,7 +22,7 @@ def addClique( cliqueList, clique ):
     if add:
         cliqueList.append( clique )
 
-def unmarkAllNodes( graph ):
+def unmark_all_nodes( graph ):
     for node in graph.nodes:
         node.visited = False
 

@@ -151,7 +151,7 @@ class Sepset( Node ):
         self.cliqueYAxes = [cliqueY.nodes.index( node ) for node in self.nodes]
         
     
-    def cliqueAxes( self, clique ):
+    def clique_axes(self, clique):
         if clique == self.cliqueX:
             return self.cliqueXAxes
         else:
