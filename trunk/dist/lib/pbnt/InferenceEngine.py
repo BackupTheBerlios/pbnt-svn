@@ -229,8 +229,8 @@ class JunctionTreeEngine(InferenceEngine):
         # The sepset axes in the proper order to refer to its variables within the cluster
         sepsetAxes = sepset.axis
         for index in mu:
-            # Array of values that correspond to a : over the dimensions of cluster that are not in
-            # sepset.
+            # Array of values that correspond to a : over the dimensions of 
+            # cluster that are not in sepset.
             values = cluster.CPT.getValue(index, clusterAxes)
             # Sum the values, because the multiple values in cluster correspond to a single place
             # in sepset.
@@ -254,7 +254,8 @@ class JunctionTreeEngine(InferenceEngine):
         # Get rid of inconsistent values.
         oldPotential.CPT[zeroMask] = 0 
         for index in mu:
-            # Use mu to identify the elements of each potential that should be multiplied together.
+            # Use mu to identify the elements of each potential 
+            # that should be multiplied together.
             sepsetValue = oldPotential.getValue( index, sepsetAxes )
             clusterValues = cluster.CPT.getValue( index, clusterAxes )
             newValues = clusterValues * sepsetValue
@@ -267,32 +268,37 @@ class JunctionTreeEngine(InferenceEngine):
         # We start by creating a forest of trees, one for each clique.
         forest = [JoinTree(clique) for clique in cliques]
         sepsetHeap = PriorityQueue()
-        for i in range(len( cliques ) - 1):
+        # Create sepsets by matching each clique with every other clique.
+        for i in range(len(cliques) - 1):
             for clique in cliques[i+1:]:
                 sepset = Sepset( cliques[i], clique )
                 sepsetHeap.insert( sepset )
         
-        for n in range(len( forest ) - 1):
-            #insert sepsets into JoinTree
+        # Join n - 1 sepsets together forming (hopefully) a single tree.
+        for n in range(len(forest) - 1):
             while sepsetHeap.hasNext():
+                # Get the sepset with the maximum mass breaking ties by
+                # choosing the sepset with the smallest cost.
                 sepset = sepsetHeap.next()
-                joinTreeX = GraphUtilities.getTree( forest, sepset.cliqueX )
-                joinTreeY = GraphUtilities.getTree( forest, sepset.cliqueY )
-                if joinTreeX != joinTreeY:
-                    joinTreeX.merge( sepset, joinTreeY )
-                    forest.remove( joinTreeY )
+                # Find out which tree each clique is from
+                joinTreeX = GraphUtilities.getTree(forest, sepset.cliqueX)
+                joinTreeY = GraphUtilities.getTree(forest, sepset.cliqueY)
+                if not joinTreeX == joinTreeY:
+                    # If the cliques are on different trees, then join to make a larger one.
+                    joinTreeX.merge(sepset, joinTreeY)
+                    forest.remove(joinTreeY)
                     break
-            
+                
         for tree in forest:
-            tree.initCliquePotentials( self.bnet.nodes )
+            tree.initCliquePotentials(self.bnet.nodes)
         
-        #find out if we are dealing with a forest, if so return as list, otherwise return as individual tree
+        # We return the forest here, but in reality we are only set to 
+        # compute marginals on a single tree, not a forest of trees.
         if len( forest ) > 1:
             return forest
         else:
             return forest[0]
     
-
 
 class JunctionTreeDBNEngine(JunctionTreeEngine):
     #this is named DBN, but really it only works for HMMs for now.
