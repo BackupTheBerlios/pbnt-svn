@@ -102,4 +102,3 @@ def flatIndex(indices, shape):
     return flat
 
 
-    

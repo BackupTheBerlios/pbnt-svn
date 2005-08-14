@@ -260,11 +260,12 @@ class JunctionTreeEngine(InferenceEngine):
             newValues = clusterValues * sepsetValue
             cluster.CPT.setValue( index, newValues, clusterAxes )    
 
-#############################  CONTINUE HERE ################################
+
     def BuildJoinTree (self, triangulatedGraph):
-        #build the join tree from the cliques in triangulatedGraph
+        # The Triangulated Graph is really a graph of cliques.
         cliques = triangulatedGraph.cliques
-        forest = [JoinTree( clique ) for clique in cliques]
+        # We start by creating a forest of trees, one for each clique.
+        forest = [JoinTree(clique) for clique in cliques]
         sepsetHeap = PriorityQueue()
         for i in range(len( cliques ) - 1):
             for clique in cliques[i+1:]:
