@@ -4,51 +4,74 @@ from numarray import *
 from DiscreteDistribution import *
 
 class Node:
-    #essentially a basic element of a graph, at some point create a child class that has a distribution
-    
-    def __init__( self, index=-1, name="anonymous" ):
-        #neighbors are actually connected by an edge, in a DAG neighbors = parents + children
+    """ A Node is the basic element of a graph.  In its most basic form a graph is just a list of 
+    Nodes.  A Node is a really just a list of neighbors.  
+    """
+    def __init__(self, index=-1, name="anonymous"):
+        # This defines a list of edges to other nodes in the graph.
         self.neighbors = []
         self.visited = False
-        #this is a little messy, but need a back reference to the graph
+        # The index of this node within the list of nodes in the overall graph.
         self.index = index
+        # Optional name, most usefull for debugging purposes.
         self.name = name
     
-    def __lt__( self, other ):
+    def __lt__(self, other):
+        # Defines a < operator for this class, which allows for easily sorting a list of nodes.
         return self.index < other.index
             
-    def addNeighbor( self, node ):
-        #this is a hack to check if node == self, fix later
+    def add_neighbor(self, node):
+        """ Make node a neighbor if it is not alreadly.  This is a hack, we should be allowing 
+        self to be a neighbor of self in some graphs.  This should be enforced at the level of a 
+        graph, because that is where the type of the graph would disallow it.
+        """
         if not (node in self.neighbors or self == node):
-            self.neighbors.append( node )
+            self.neighbors.append(node)
     
-    def removeNeighbor( self, node ):
-        self.neighbors.remove( node )
+    def remove_neighbor(self, node):
+        # Remove the node from the list of neighbors, effectively deleting that edge from
+        # the graph.
+        self.neighbors.remove(node)
     
-    def isNeighbor( self, node ):
+    def is_neighbor(self, node):
+        # Check if node is a member of neighbors.
         return node in self.neighbors
 
-class DirectedNode( Node ):
-    
-    def __init__( self, index=-1, name="anonymous" ):
-        Node.__init__( self, index, name )
+class DirectedNode(Node):
+    """ This is the child class of Node.  Instead of mainting a list of neighbors, it maintains
+    a list of parents and children.  Of course since it is the child of Node, it does technically
+    have a list of neighbors (though it should remain empty).
+    """
+    def __init__(self, index=-1, name="anonymous"):
+        Node.__init__(self, index, name)
         self.parents = []
         self.children = []
     
-    def addParent( self, parent ):
-        self.parents.append( parent )
+    def add_parent(self, parent):
+        # Same as add_neighbor, but for parents of the node.
+        if not (parent in self.parents or self == parent):
+            self.parents.append(parent)
     
-    def addChild( self, child ):
-        self.children.append( child )
+    def add_child(self, child):
+        # Same as add_parent but for children.
+        if not (child in self.children or self == child):
+            self.children.append(child)
     
-    def removeParent( self, parent ):
-        self.parents.remove( parent )
+    def remove_parent(self, parent):
+        # Same as remove_neighbor, but for parents.
+        self.parents.remove(parent)
         
-    def removeChild( self, child ):
-        self.children.remove( child )
+    def remove_child(self, child):
+        # Same as remove_parent
+        self.children.remove(child)
     
     def undirect( self ):
-        self.neighbors = self.neighbors + self.parents + self.children
+        """ This drops the direction of self's edges.  This doesn't exactly destroy it since 
+        self still maintains lists of parents and children.  We could think of this as allowing
+        us to treat self as both directed and undirected simply allowing it to be casted as one
+        at one moment and the other at another moment.
+        """
+        self.neighbors = self.parents + self.children
 
 class BayesNode( DirectedNode ):
     
