@@ -73,34 +73,42 @@ class DirectedNode(Node):
         """
         self.neighbors = self.parents + self.children
 
-class BayesNode( DirectedNode ):
-    
+class BayesNode(DirectedNode):
+    """ BayesNode is a child class of DirectedNode.  Essentially it is a DirectedNode with some added fields that make it more
+    appropriate for a Bayesian Network, such as a field for a distribution and arrays of indices. The arrays are indices 
+    of its parents and children; that is the index of its neighbor within the overall bayes net.
+    """
     #this is a node for a Bayesian Network, which is a directed node with some extra fields
-    def __init__( self, nodeSize, index=-1, name="anonymous" ):
-        DirectedNode.__init__( self, index, name )
-        self.nodeSize = nodeSize
-        #this is really something that should be in a child class named CliqueNode, but don't know how
-        #to coerce it to change type in place on the fly
-        self.clique = -1
-        self.evidence = -1
-        self.parentIndex = array( [node.name for node in self.parents] )
-        self.childIndex = array( [node.name for node in self.children] )
+    def __init__(self, index=-1, name="anonymous"):
+        DirectedNode.__init__(self, index, name)
+        # value is the value that this node currently holds.  -1 is currently the "Blank" value, this feels dangerous.
+        self.value = -1
+        # Haven't really started using the following memoized values, but they will be used.
+        self.parentIndex = array([node.index for node in self.parents])
+        self.childIndex = array([node.index for node in self.children])        
         
-        
-    def setCPT( self, CPT ):
-        self.CPT = CPT
-
-#So far Clique is only used in JTree
-class Clique( BayesNode ):
+    def set_dist(self, dist):
+        self.dist = dist
     
-    def __init__( self, nodes ):
-        #nodes = [CliqueNode( node ) for node in nodes]
-        BayesNode.__init__( self, len( nodes ) )
+    def size(self):
+        return self.dist.size
+
+
+class Clique(DirectedNode):
+    """ Clique inherits from DirectedNode.  Clique's are clusters which act as a single node within a JoinTree.  
+    They are equivalent in JoinTrees to BayesNodes' in Bayesian Networks.  The main difference is that they have "potentials"
+    instead of distributions.  Potentials are in effect the same as a conditional distribution, but unlike conditional 
+    distribtions, there isn't as clear a sense that the distribution is over one node and conditioned on a number of others.
+    """     
+    def __init__(self, nodes):
+        name = ''
+        for node in nodes:
+            name += node.name
+        DirectedNode.__init__(self, name)
         self.nodes = nodes
         self.nodes.sort()
-        self.neighbors = []
         self.sepsets = []
-        self.CPT = DiscreteDistribution(ones([node.nodeSize for node in self.nodes], type=Float32), self.nodes[0].nodeSize )
+        self.potential = DiscreteDistribution(ones([node.nodeSize for node in self.nodes], type=Float32), self.nodes[0].nodeSize )
         
     
     def addSepset( self, sepset ):

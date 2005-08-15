@@ -10,6 +10,7 @@ class DiscreteDistribution:
     
     def __init__(self, numValues):
         self.table = zeros([numValues], type=Float32)
+        self.size = numValues
         
     def set_value(self, value, probability):
         self.table[value] = probability
@@ -25,11 +26,11 @@ class ConditionalDiscreteDistribution:
 #2 give it for specific parents but
 # randomfor others
 
-    def __init__(self, CPT, ns):
+    def __init__(self, CPT):
         self.CPT = CPT
-        self.ns = ns
-        self.dims = shape( CPT )
-        self.nDims = len( self.dims )
+        self.dims = shape(CPT)
+        self.size = self.dims[-1]
+        self.nDims = len(self.dims)
     
     def setValue( self, indices, value, axes=-1 ):
         if axes == -1:
