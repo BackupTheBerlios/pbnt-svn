@@ -4,50 +4,56 @@ from ClusterBinaryHeap import *
 from Clique import *
 
 class Graph:
-    #for now this class is designed for JoinTrees, eventually this will be abstracted and used as a global graphical class.
+    """ Graph is the parent of all other graph classes.  It defines a very basic undirected graph class.  It essentially is 
+    just a list of nodes, and it is the nodes that maintain their own lists of parents and children.
+    """
     
-    #a graph can be thought of as a collection of nodes or a collection of edges, in this case we do both, will refine later.
-    def __init__( self, nodes ):
-        self.nodes = nodes
+    def __init__(self, nodes):
+        self.nodes = set(nodes)
         
-    def addNode( self, node ):
-        if isinstance( node, types.ListType ):
+    def add_node(self, node):
+        # Check if it is a list of nodes or a single node (arrays are also type=ListType).
+        if isinstance(node, types.ListType):
             for n in node:
-                self.nodes.append( n )
+                self.nodes.append(n)
         else:
-            self.nodes.append( node )
+            self.nodes.append(node)
         
-    def memberOf( self, node ):
+    def member_of(self, node):
         return node in self.nodes
+    
+    def contains(self, nodes):
+        assert(isinstance(nodes, set))
+        return self.nodes.issuperset(nodes)
 
-
-#right now same as graph, but will use topo which is difference
 class DAG(Graph):
+    """ Child of Graph class.  It is very similar to Graph class with the addition of a couple of methods aimed at a graph of
+    nodes that are directed.  Currently this class does not ensure that it is acyclic, but it is assumed that the user
+    will not violate this principle.
+    """
     
-    #a directed graph
-    #ASSUMPTION: nodes in topo order
-    def __init__( self, nodes ):
-        self.nodes = nodes
-        #self.nodes = topologicalSort( nodes )
-        self.numNodes = len( nodes )
+    def __init__(self, nodes):
+        self.nodes = self.topological_sort(nodes)
     
-    def topologicalSort( self, nodes ):
-        #puts nodes in topo order, parents before children
+    def topological_sort(self, nodes):
+        # Orders nodes such that no node is before any of its parents.
         noParents = []
         children = []
         for node in nodes:
-            if len( node.parents ) == 0:
-                noParents.append( node )
+            if len(node.parents) == 0:
+                noParents.append(node)
             #not FINISHED 
     
-    def undirect( self ):
+    def undirect(self):
         for node in self.nodes:
             node.undirect()
+
 
 class BayesNet( DAG ):
     
     def __init__(self, nodes):
         DAG.__init__( self, nodes )
+        self.numNodes = len(nodes)
                 
     def children (self, i):
         return self.nodes[i].children
