@@ -1,5 +1,4 @@
-from SequenceGenerator import *
-import utilities
+import Utilities
 from numarray import *
 from DiscreteDistribution import *
 
@@ -79,10 +78,12 @@ class BayesNode(DirectedNode):
     of its parents and children; that is the index of its neighbor within the overall bayes net.
     """
     #this is a node for a Bayesian Network, which is a directed node with some extra fields
-    def __init__(self, index=-1, name="anonymous"):
+    def __init__(self, size=-1, index=-1, name="anonymous"):
         DirectedNode.__init__(self, index, name)
+        self.t = size
         # value is the value that this node currently holds.  -1 is currently the "Blank" value, this feels dangerous.
         self.value = -1
+        self.parentCluster = -1
         # Haven't really started using the following memoized values, but they will be used.
         self.parentIndex = array([node.index for node in self.parents])
         self.childIndex = array([node.index for node in self.children])        
@@ -91,106 +92,121 @@ class BayesNode(DirectedNode):
         self.dist = dist
     
     def size(self):
+        return self.t
+    
+    def __len__(self):
         return self.dist.size
 
 
-class Clique(DirectedNode):
-    """ Clique inherits from DirectedNode.  Clique's are clusters which act as a single node within a JoinTree.  
+class Clique(Node):
+    """ Clique inherits from Node.  Clique's are clusters which act as a single node within a JoinTree.  
     They are equivalent in JoinTrees to BayesNodes' in Bayesian Networks.  The main difference is that they have "potentials"
     instead of distributions.  Potentials are in effect the same as a conditional distribution, but unlike conditional 
     distribtions, there isn't as clear a sense that the distribution is over one node and conditioned on a number of others.
-    """     
+    """    
+    
     def __init__(self, nodes):
+        # Make the name of self the concatenation of the names of the input nodes.
         name = ''
         for node in nodes:
             name += node.name
-        DirectedNode.__init__(self, name)
+        Node.__init__(self, name)
         self.nodes = nodes
+        # Nodes must be ordered in the same relative order that they are in the actual network, so that they are in topo order.
         self.nodes.sort()
+        # Between every Clique node is a sepset, so this should be as long as 
         self.sepsets = []
-        self.potential = DiscreteDistribution(ones([node.nodeSize for node in self.nodes], type=Float32), self.nodes[0].nodeSize )
-        
+        # A Potential is like a conditional distribution, but the probabilities 
+        # are not explicitly conditioned on other probabilities.
+        self.potential = Potential(self.nodes)
     
-    def addSepset( self, sepset ):
-        self.sepsets.append( sepset )
-        
-    def initPotential( self, variable ):
-        cliqueAxes = [self.nodes.index(node) for node in variable.parents + [variable]]
-        sequence = SequenceGenerator( variable.CPT.dims )
-        axesToIter = [axis for axis in range(self.CPT.nDims) if not axis in cliqueAxes]
-        #this could be greatly optimized, first generateArrayIndex could be called only once and then replace
-        #the constant values with new ones for each seq
-        #Also: will be fastest if sequence is over the smallest number of dimensions, either
-        #the variables or the non-variable dimensions
-        for seq in sequence:
-            cliqueValues = self.CPT.getValue( seq, cliqueAxes )
-            variableValues = variable.CPT.getValue( seq )
-            values = cliqueValues * variableValues
-            self.CPT.setValue( seq, values, cliqueAxes )
-            #if len( axesToIter ) > 0:
-                #dimsToIter = array(self.CPT.dims)[axesToIter]
-                #indices = generateArrayIndex( dimsToIter, axesToIter, seq, cliqueAxes )
-            #else: 
-                #indices = seq
-            #self.CPT.setValue( indices, values )        
-            #if len( axesToIter ) > 0:
-            
-            #else:
-                #self.CPT.setValue( seq, values, axes=cliqueAxes)
-            
+    def add_neighbor(self, sepset, node):
+        Node.add_neighbor(node)
+        self.sepsets.append(sepset)
+                
+    def init_potential(self, node):
+        """ We can either iterate through all of the dimensions of node, or all of the dimensions of
+        self.potential that are not related to node.  Which ever is fewer will be faster. 
+        """
+        parentIndices = [self.nodes.index(node) for node in variable.parents + [variable]]
+        nNodeDims = len(node.parents) + 1
+        if nNodeDims < (self.potential.nDims - nNodeDims):
+            # Iterate over the node's dimensions.
+            # axes is a list of the index of each of the nodes relative to the clique, 
+            # we will use this to know how to permute the the indices into the node, 
+            # so that they are equivalent to the clique's own potential.
+            axes = parentIndices
+            # An iterator that iterates through all possible indices of node.
+            sequence = SequenceGenerator(node.dist.dims)
+            for seq in sequence:
+                cliqueValues = self.dist.get_value(seq, axes)
+                nodeValues = variable.dist.get_value(seq)
+                values = cliqueValues * nodeValues
+                self.potential.set_value(seq, values, axes)    
+        else:
+            mask = zeros([self.potential.nDims], type=Bool)
+            mask[parentIndices] = 0
+            # axes is a list of the axes that are not related to node.
+            axes = arange(self.potential.nDims)[mask]
+            axesDims = self.potential.dims[axes]
+            sequence = SequenceGenerator(axesDims)
+            for seq in sequence:
+                cliqueValues = self.dist.get_value(seq, axes)
+                nodeValues = node.dist.CPT
+                values = cliqueValues * nodeValues
+                self.potential.set_value(seq, values, axes)
+                
+    def reinit_potential( self ):
+        self.potential = Potential(self.nodes)
     
-    def reinitPotential( self ):
-        self.CPT = DiscreteDistribution(ones([node.nodeSize for node in self.nodes], type=Float32), self.nodes[0].nodeSize )
-    
-    def contains( self, nodes ):
+    def contains(self, nodes):
+        # Checks if all of nodes is contained in self.nodes
         isIn = True
         for node in nodes:
             if not node in self.nodes:
                 isIn = False
                 break
         return isIn
+ 
 
-#Cluster is generally only used in Junction Tree
-class ClusterNode( Node ):
-    #These are clusters in the Join Tree sense
-    def __init__( self, neighbors, sepsets, potential ):
-        Node.__init__( self, neighbors )
-        self.potential = potential
-        self.sepsets = sepsets
-    
-    
-#Also only used in JTree
 class Sepset( Node ):
+    """ Sepsets sit between Cliques in a join tree.  They represent the intersection of the 
+    variables in the two member Cliques.  They facilitate passing messages between the two cliques.
+    """
     
-    def __init__( self, cliqueX, cliqueY ):
-        Node.__init__( self )
+    def __init__(self, cliqueX, cliqueY):
+        Node.__init__(self)
+        # Clique that is connected to one side of self
         self.cliqueX = cliqueX
+        # Clique that is connected to the other side of self.
         self.cliqueY = cliqueY
-        self.nodes = utilities.intersect( cliqueX.nodes, cliqueY.nodes )
+        # The nodes that are in self
+        self.nodes = utilities.intersect(cliqueX.nodes, cliqueY.nodes)
+        # Make sure that they are in topo order
         self.nodes.sort()
-        self.mass = len( self.nodes )
-        self.cost = product(array( [node.nodeSize for node in cliqueX.nodes] )) + product(array( [node.nodeSize for node in cliqueY.nodes] ))
-        
+        # The mass of self (the number of nodes it relates to.
+        self.mass = len(self.nodes)
+        # The cost, used for breaking ties between mass.  The cost is equal to the 
+        # product of the node sizes of the nodes in cliqueX + cliqueY. 
+        costX = product(array([node.dist.size() for node in cliqueX.nodes]))
+        costY = product(array([node.dist.size() for node in cliqueY.nodes]))
+        self.cost = costX + costY
         self.neighbors = [cliqueX, cliqueY]
-        self.dims = [x.nodeSize for x in self.nodes]
-        self.indexWeights = array([product(self.dims[i+1:]) for i in range(len( self.dims ))])
-        self.potential = DiscreteDistribution( ones(self.dims, type=Float32), self.nodes[0].nodeSize )
-        
-        self.axis = range( self.potential.nDims )
-        self.mu = SequenceGenerator( self.dims )
-        self.cliqueXAxes = [cliqueX.nodes.index( node ) for node in self.nodes]
-        self.cliqueYAxes = [cliqueY.nodes.index( node ) for node in self.nodes]
+        self.potential = Potential(self.nodes)
+        self.cliqueXAxes = array([cliqueX.nodes.index(node) for node in self.nodes])
+        self.cliqueYAxes = array([cliqueY.nodes.index(node) for node in self.nodes])
         
     
     def clique_axes(self, clique):
+        # Return the clique axes that match the input clique.
         if clique == self.cliqueX:
             return self.cliqueXAxes
         else:
             return self.cliqueYAxes
     
     
-    def __lt__( self, other ):
-        #less than essentially means better than
+    def __lt__(self, other):
+        # This test is used to order nodes when deciding which sepset has highest priority.
         if self.mass > other.mass:
             return True
         if self.mass == other.mass and self.cost < other.cost:
@@ -198,5 +214,5 @@ class Sepset( Node ):
         
         return False
     
-    def reinitPotential( self ):
-        self.potential = DiscreteDistribution( ones(self.dims, type=Float32), self.nodes[0].nodeSize )
+    def reinit_potential(self):
+        self.potential = Potential(self.nodes)

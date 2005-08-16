@@ -1,6 +1,5 @@
 from numarray import *
 import GraphUtilities
-
 from ClusterBinaryHeap import *
 from Clique import *
 
