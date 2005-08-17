@@ -48,15 +48,18 @@ class DirectedNode(Node):
     a list of parents and children.  Of course since it is the child of Node, it does technically
     have a list of neighbors (though it should remain empty).
     """
-    def __init__(self, index=-1, name="anonymous"):
-        Node.__init__(self, index, name)
+    def __init__(self, id, index=-1, name="anonymous"):
+        Node.__init__(self, id, index, name)
         self.parents = []
         self.children = []
+        # The following is used commonly to index into the evidence.
+        self.parentIndex = []
     
     def add_parent(self, parent):
         # Same as add_neighbor, but for parents of the node.
         if not (parent in self.parents or self == parent):
             self.parents.append(parent)
+            self.parentIndex.append(parent.index)
     
     def add_child(self, child):
         # Same as add_parent but for children.
@@ -85,15 +88,15 @@ class BayesNode(DirectedNode):
     of its parents and children; that is the index of its neighbor within the overall bayes net.
     """
     #this is a node for a Bayesian Network, which is a directed node with some extra fields
-    def __init__(self, size=-1, index=-1, name="anonymous"):
-        DirectedNode.__init__(self, index, name)
-        self.t = size
+    def __init__(self, id, numValues, index=-1, name="anonymous"):
+        DirectedNode.__init__(self, id, index, name)
+        self.numValues = numValues
         # value is the value that this node currently holds.  -1 is currently the "Blank" value, this feels dangerous.
         self.value = -1
-        self.parentCluster = -1
-        # Haven't really started using the following memoized values, but they will be used.
-        self.parentIndex = array([node.index for node in self.parents])
-        self.childIndex = array([node.index for node in self.children])        
+        self.clique = -1
+        
+    def evidence_index(self):
+        return self.parentIndex + [self.index]
         
     def set_dist(self, dist):
         self.dist = dist

@@ -17,19 +17,6 @@ class Potential:
             self.table = table
             self.dims = shape(table)
         self.nDims = len(self.dims)
-        
-    #def set_value( self, index, value, axes=-1 ):
-        #if axes == -1:
-            #axes = range(self.nDims) 
-        #indexStr = GraphUtilities.generateArrayStrIndex(index, axes, self.nDims)
-        #exec 'self.table' + indexStr + ' = ' + repr(value)
-    
-    #def get_value(self, index, axes=-1):
-        #if axes == -1:
-            #axes = range(self.nDims)
-        #indexStr = GraphUtilities.generateArrayStrIndex(index, axes, self.nDims)
-        #values = eval('self.table' + indexStr)
-        #return values
     
     def normalize(self):
         # Make sure that the last dimension adds to 1 along all other values.
@@ -67,7 +54,7 @@ class Potential:
     def __getitem__(self, index):
         return self.table[index]
     
-    def __setitem__(self, index, value, axes=-1):
+    def __setitem__(self, index, value):
         self.table[index] = value
         
     
@@ -80,6 +67,7 @@ class DiscreteDistribution(Potential):
     def __init__(self, numValues):
         self.table = zeros([numValues], type=Float32)
         self.size = numValues
+        self.nDims = 1
         
     def set_value(self, value, probability):
         self.table[value] = probability

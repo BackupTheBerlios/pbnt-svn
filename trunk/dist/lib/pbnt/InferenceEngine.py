@@ -8,7 +8,10 @@ from Node import *
 from Utilities.Utilities import *
 import Utilities.GraphUtilities as GraphUtilities
 
-"""This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
+"""This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms 
+are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference 
+object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by 
+other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
 """
 
 class InferenceEngine:
@@ -23,7 +26,7 @@ class InferenceEngine:
     def init_evidence(self, evidence):
         self.evidence = evidence
         
-    def change_evidence ( self, varIndex, values ):
+    def change_evidence (self, varIndex, values):
         self.evidence[varIndex] = values
     
     def marginal(self):
@@ -43,16 +46,16 @@ class EnumerationEngine(InferenceEngine):
         # Compute the marginal for each node in nodes
         distList = list()
         for node in nodes:
-            ns = node.ns
+            ns = node.size()
             # Create the return distribution.
             Q = DiscreteDistribution(ns)
             if self.evidence[node.index] == -1:
                  for val in range(ns):
                      prob = self.enumerate_all(node, val)
-                     Q.set_value(val, prob)
+                     Q[val] = prob
             else:
                 val = self.evidence[node.index]
-                Q.set_value(val, 1)
+                Q[val] = 1
             Q.normalize()
             distList += Q
         return distList
@@ -106,8 +109,12 @@ class EnumerationEngine(InferenceEngine):
         # Compute the probability of the state of the bayes net given the values of state.
         Q = 1
         for i in range(len(state)):
-            vals = concatenate((state[self.bnet.parentIndices(i)], state[i]))
-            Q *= self.bnet.nodes(i).getValue(vals)
+            node = self.bnet.nodes(i)
+            dist = node.dist
+            vals = state[node.evidence_index()]
+            # Generate a slice object to index into dist using vals.
+            index = dist.generateIndex(vals, range(dist.nDims))
+            Q *= node.dist[index]
         return Q
 
 
@@ -168,11 +175,11 @@ class JunctionTreeEngine(InferenceEngine):
         
         distributions = []
         for node in query:
-            Q = DiscreteDistribution(zeros([node.nodeSize], type=Float32), node.nodeSize)
-            for value in range(node.nodeSize):
-                #axis arg not needed, but nice for clarity
-                prob = node.clique.CPT.getValue([value], axes=[node.clique.nodes.index(node)])
-                Q.setValue(value, prob.sum())
+            Q = DiscreteDistribution(node.size())
+            for value in range(node.size()):
+                potential = node.clique.potential
+                index = potential.generateIndex([value], [node.clique.nodes.index(node)])
+                Q[value] = potential[index].sum()
             Q.normalize()
             distributions.append(Q)
         return distributions
@@ -214,7 +221,7 @@ class JunctionTreeEngine(InferenceEngine):
         # before it is affected by the internals of project
         oldSepsetPotential = self.project(fromCluster, sepset) 
         # Absorb the sepset into the toCluster
-        self.absorb( toCluster, sepset, oldSepsetPotential )
+        self.absorb(toCluster, sepset, oldSepsetPotential)
     
     def project(self, cluster, sepset):
         # Marginalize the cluster given the variables in the sepset
@@ -301,7 +308,9 @@ class JunctionTreeEngine(InferenceEngine):
     
 
 class JunctionTreeDBNEngine(JunctionTreeEngine):
-    #this is named DBN, but really it only works for HMMs for now.
+    """ JunctionTreeDBNEngine is the JunctionTreeEngine for dynamic networks.  It is far from done.  This is more of a 
+    place holder as of right now.
+    """
     
     def __init__(self, DBN):
         InferenceEngine.__init__(DBN)
