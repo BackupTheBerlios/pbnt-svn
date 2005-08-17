@@ -6,10 +6,11 @@ class Node:
     """ A Node is the basic element of a graph.  In its most basic form a graph is just a list of 
     Nodes.  A Node is a really just a list of neighbors.  
     """
-    def __init__(self, index=-1, name="anonymous"):
+    def __init__(self, id, index=-1, name="anonymous"):
         # This defines a list of edges to other nodes in the graph.
         self.neighbors = []
         self.visited = False
+        self.id = id
         # The index of this node within the list of nodes in the overall graph.
         self.index = index
         # Optional name, most usefull for debugging purposes.
@@ -18,6 +19,12 @@ class Node:
     def __lt__(self, other):
         # Defines a < operator for this class, which allows for easily sorting a list of nodes.
         return self.index < other.index
+    
+    def __hash__(self):
+        return hash(self.id)
+    
+    def __eq__(self, right):
+        return self.id == right.id
             
     def add_neighbor(self, node):
         """ Make node a neighbor if it is not alreadly.  This is a hack, we should be allowing 

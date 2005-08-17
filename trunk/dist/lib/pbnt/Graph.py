@@ -1,7 +1,13 @@
 from numarray import *
-import GraphUtilities
+import Utilities.GraphUtilities as Utilities
+import Utilities.Utilities as Utilities
 from ClusterBinaryHeap import *
 from Clique import *
+
+try: set
+except NameError:
+    import sets
+    set = sets.Set
 
 class Graph:
     """ Graph is the parent of all other graph classes.  It defines a very basic undirected graph class.  It essentially is 
@@ -9,23 +15,31 @@ class Graph:
     """
     
     def __init__(self, nodes):
-        self.nodes = set(nodes)
+        self.nodes = nodes
+        # Only used for internal membership tests, so make it private
+        self.__nodeset_ = set(nodes)
         
     def add_node(self, node):
         # Check if it is a list of nodes or a single node (arrays are also type=ListType).
         if isinstance(node, types.ListType):
             for n in node:
                 self.nodes.append(n)
+                self.__nodeset_.add(n)
         else:
             self.nodes.append(node)
+            self.__nodeset_.add(node)
         
     def member_of(self, node):
-        return node in self.nodes
+        return node in self.__nodeset_
     
     def contains(self, nodes):
-        assert(isinstance(nodes, set))
-        return self.nodes.issuperset(nodes)
-
+        return self.__nodeset_.issuperset(nodes)
+    
+    def connect_nodes(node1, node2):
+        node1.add_neighbor(node2)
+        node2.add_neighbor(node1)
+   
+   
 class DAG(Graph):
     """ Child of Graph class.  It is very similar to Graph class with the addition of a couple of methods aimed at a graph of
     nodes that are directed.  Currently this class does not ensure that it is acyclic, but it is assumed that the user
@@ -33,26 +47,32 @@ class DAG(Graph):
     """
     
     def __init__(self, nodes):
-        self.nodes = self.topological_sort(nodes)
+        Graph.__init__(self, nodes)
+        self.topological_sort()
     
-    def topological_sort(self, nodes):
+    def topological_sort(self):
         # Orders nodes such that no node is before any of its parents.
-        noParents = []
-        children = []
-        for node in nodes:
-            if len(node.parents) == 0:
-                noParents.append(node)
-            #not FINISHED 
+        sorted = list()
+        while len(nodes) > 0:
+            for node in nodes:
+                if Utilities.issuperset(sorted, node.parents):
+                    sorted.append(node)
+                    nodes.remove(node)
+                    break
+        return sorted 
     
     def undirect(self):
         for node in self.nodes:
             node.undirect()
 
 
-class BayesNet( DAG ):
+class BayesNet(DAG):
+    """  This is an actual Bayesian Network.  It is essentially a DAG, but it has several extra methods and fields that are 
+    used by associated inference and learning algorithms.
+    """
     
     def __init__(self, nodes):
-        DAG.__init__( self, nodes )
+        DAG.__init__(self, nodes)
         self.numNodes = len(nodes)
                 
     def children (self, i):
@@ -61,34 +81,29 @@ class BayesNet( DAG ):
     def parents (self, i):
         return self.nodes[i].parents
     
-    def parentIndices( self, i ):
-        indices = []
-        for node in self.nodes[i].parents:
-            indices.append(self.indexOf( node ))
-        return array(indices)
-    
-    def numberOfNodes(self):
-        return self.numNodes
-    
-    def ns(self, i):
+    def nodeSize(self, i):
         return self.nodes[i].nodeSize
     
-    def CPTs( self, i ):
-        return self.nodes[i].CPT
-    
-    def indexOf( self, node ):
-        return self.nodes.index( node )
+    def index_of(self, node):
+        # This function is hides the actual implementation of self.nodes, keeping up an abstraction barrier
+        return self.nodes.index(node)
     
     def counts(self):
-        return array([node.CPT.CPT.copy() for node in self.nodes])
+        # Return an array of matrices that can be used as a way to build a set of counts
+        # This is also breaking down the abstraction barrier by accessing CPT, should be investigated at a later date.
+        return array([node.dist.table.copy() for node in self.nodes])
     
-    def addCounts(self, counts):
+    def add_counts(self, counts):
+        # Update the internal CPTs with the given counts
         for node in self.nodes:
-            node.CPT.CPT += counts[node.index]
-            node.CPT.normalise()
+            node.dist.table += counts[node.index]
+            node.dist.normalize()
 
             
 class MoralGraph(Graph):
+    """  A MoralGraph is an undirected graph that is built by connecting all of the parents of a directed graph and 
+    dropping the direction of the edges.
+    """
     
     def __init__(self, DAG):
         Graph.__init__(self, DAG.nodes)
@@ -102,16 +117,18 @@ class MoralGraph(Graph):
             parents = node.parents
             for i in range(len(parents)):
                 for parent in parents[i:]:
-                    GraphUtilities.connectNodes(node.parents[i], parent)
+                    self.phUtilities.connect_nodes(node.parents[i], parent)
 
 class MoralDBNGraph(MoralGraph):
+    """ This is not finished yet.  The plan is to use this class to create a MoralGraph for use in Dynamic Bayes Nets.
+    The primary difference between doing JunctionTreeInference on a DBN from a static bayes net is that I have to ensure
+    that the forward interface and the backward interface are both contained in a clique of the final join tree.  This can 
+    be ensured by making sure that all of the nodes in the two interfaces are connected.  For more details and a justification
+    please see Kevin Murphy's dissertation.
+    """
     
     def __init__(self, DBN):
         MoralGraph.__init__(DBN)
-        #for the DBN case, we need to connect all of the nodes in the forward
-        #and backward interfaces respectively.  This will insure that the Interfaces
-        #end up in entailed within a clique.  See Kevin Murphy's Thesis section 3 the
-        #Interface Algorithm for more details.
         fInterfaceNodes = self.selectForwardInterface()
         bInterfaceNodes = self.selectBackInterface()
         
@@ -120,16 +137,24 @@ class MoralDBNGraph(MoralGraph):
             #for each interface, connect all nodes within the interface
             for i in range(len(interface)):
                 for node in interface[i+1:]:
-                    GraphUtilities.connectNodes(interface[i], node)
+                    self.connect_nodes(interface[i], node)
                     
 
 class TriangleGraph(Graph):
+    """ TriangleGraph is constructed from the MoralGraph.  It is the triangulated graph.  It is constructed by identifying 
+    clusters of nodes according to a given heuristic.  There are many heuristics that can be used, and in this implementation
+    the heuristic is implemented in the ClusterBinaryHeap and can therefore be changed independent of this class.  The heap
+    acts as a priority queue.  After the heap has been created, we remove nodes from the heap and use the information to 
+    create Cliques.  The Cliques are then added to the graph if they are not contained in a previous Clique.  
+    TODO: Move addClique to this class from GraphUtilities.  Reimplement ClusterBinaryHeap as a built in python priority
+    queue.
+    """
     
     def __init__(self, moral):
         Graph.__init__(self, moral.nodes)
         heap = ClusterBinaryHeap()
-        #copy the graph so that we can destroy the copy as we go
-        for (node, i) in zip(copy.deepcopy(moral.nodes), range(len(moral.nodes))):
+        # Copy the graph so that we can destroy the copy as we insert it into heap.
+        for i, node in enumerate(copy.deepcopy(moral.nodes)):
             node.index = i
             #have to copy so that when we destory neighbor lists it wont affect the actual graph
             heap.insert(node)
@@ -138,79 +163,72 @@ class TriangleGraph(Graph):
         for (node, edges) in heap:
             realnode = self.nodes[node.index]
             for edge in edges:
-                #a little messy, but we want to reference the nodes in the actual graph, not the ones from the heap
-                #we destroyed the neighbor lists of the nodes in the heap
-                GraphUtilities.connectNodes(self.nodes[node.neighbors[edge[0]].index], self.nodes[node.neighbors[edge[1]].index])
+                # We need to make sure we reference the nodes in the actual graph, not the copied ones that were inserted
+                # into the heap.
+                self.connect_nodes(self.nodes[node.neighbors[edge[0]].index], self.nodes[node.neighbors[edge[1]].index])
             
             clique = Clique([realnode] + realnode.neighbors)
-            #use addCluster which only adds if it is not contained in a previously added cluster
+            # We only add clique to inducedCliques if is not contained in a previously added clique
             GraphUtilities.addClique(inducedCliques, clique) 
-            
-        
         self.cliques = inducedCliques
+        
 
 class JoinTree(Graph):
+    """ JoinTree is the final graph that is constructed for JunctionTree Inference.  To create the JoinTree, we first create
+    a forest of n JoinTrees where each tree consists of a single clique (n is the number of cliques).  Then we create a list
+    of all distinct pairs.  Then we insert a sepset between each pair of cliques.  Then we loop n - 1 times.  
+    At each iteration, we choose the next best sepset according to some heuristic.  If we the two cliques connected to the 
+    sepset are on different trees, we join them into one larger tree.    
+    """
     
     #use constructor from Graph, will take either a single clique or a list of them
-    def __init__( self, clique ):
-        if not isinstance( clique, types.ListType ):
+    def __init__(self, clique):
+        if not isinstance(clique, types.ListType):
             clique = [clique]
-        
-        Graph.__init__( self, clique )
+        Graph.__init__(self, clique)
         self.initialized = False
         self.likelihoods = []
     
-    def initCliquePotentials( self, variables ):
-        #if the join tree was created we are guaranteed to have a parent cluster
-        #if there is no such cluster, we must be one tree in a forest and it must be in
-        #another tree
+    def init_clique_potentials(self, variables):
+        # We currently only handle one tree long forests.
         for v in variables:
             famV = v.parents + [v]
             for clique in self.nodes:
-                if clique.contains( famV ):
+                if clique.contains(famV):
                     v.clique = clique
-                    clique.initPotential( v )
+                    clique.init_potential(v)
                     break
         self.initialized = True
     
-    def merge( self, sepset, tree ):
+    def merge(self, sepset, tree):
         cliqueX = sepset.cliqueX
         cliqueY = sepset.cliqueY                
-        cliqueX.addNeighbor( cliqueY )
-        cliqueY.addNeighbor( cliqueX )
-        cliqueX.addSepset( sepset )
-        cliqueY.addSepset( sepset )
+        cliqueX.add_neighbor(cliqueY)
+        cliqueY.add_neighbor(cliqueX)
+        cliqueX.add_sepset(sepset)
+        cliqueY.add_sepset(sepset)
         for node in tree.nodes:
-            self.addNode( node )
-        #self.addNode( sepset.cliqueY )
+            self.add_node(node)
     
-    def re_initialize( self, variables ):
+    def reinitialize(self, variables):
         for clique in self.nodes:
-            clique.reinitPotential()
-            #need to optimize the next part as is it does double the work it should
+            clique.reinit_potential()
+            # FIXME: the following optimizes each sepset twice, inefficient.
             for sepset in clique.sepsets:
-                sepset.reinitPotential()
-        self.initCliquePotentials( variables )
+                sepset.reinit_potential()
+        self.init_clique_potentials(variables)
     
-    def enter_evidence( self, evidence, nodes ):
+    def enter_evidence(self, evidence, nodes):
         mask = evidence != -1
         values = evidence[mask]
         nodeIndices = array(range(len( nodes )))[mask]
-        
-        for (nodeI, value) in zip( nodeIndices, values ):
-            #perfect example of why attr CPT needs to be renamed
+        for (nodeI, value) in zip(nodeIndices, values):
             node = nodes[nodeI]
             clique = node.clique
-            axis = [clique.nodes.index( node )]
-            #axesToIter = [i for i in range(clique.CPT.nDims) if not i == axis]
-            potentialMask = DiscreteDistribution(zeros( array(clique.CPT.dims), type=Float32 ), node.nodeSize)
-            potentialMask.setValue( value, 1, axes=axis )
-            #if len( axesToIter ) > 0:
-                #dimsToIter = array(clique.CPT.dims)[axesToIter]
-                #indices = generateArrayIndex( dimsToIter, axesToIter, [value], [axis] )
-                #potentialMask.CPT.setValue( indices, 1 )
-            #else:
-                #potentialMask.CPT.setValue( array([value]), 1, axes=axis)
-            
-            clique.CPT.CPT *= potentialMask.CPT        
+            axis = [clique.nodes.index(node)]
+            # FIXME: This really should be a plain numarray object and then indexed with a slice object
+            potentialMask = Potential(clique.nodes)
+            potentialMask.table.flat[:] = 0
+            potentialMask.setValue(value, 1, axes=axis)
+            clique.potential.table *= potentialMask.table    
     

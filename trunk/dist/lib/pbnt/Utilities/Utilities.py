@@ -1,3 +1,4 @@
+from __future__ import generators
 from numarray import *
 import numarray.random_array as ra
 
@@ -17,6 +18,20 @@ def myFloatEQ ( a , b ):
         return True
     
     return False
+
+# Exactly the same as for sets, except designed for lists
+def issubset(L1, L2):
+    for item in L1:
+        if item not in L2:
+            return False
+    return True
+
+# Exactly the same as for sets, except designed for lists
+def issuperst(L1, L2):
+    for item in L2:
+        if item not in L1:
+            return False
+    return True
 
 #returns an array of unique elements given the elements in the input arrays, all arrays must be input as a tuple
 #this is VERY UNOPTIMIZED, should be replaced later by a UFUNC in Numarray, but we will wait to do that
@@ -74,32 +89,23 @@ def updateCounts(nodes, counts, data):
         fIndex = flatIndex(indices, count.shape)
         count.flat[fIndex] += 1
 
-class SequenceGenerator:
-    
-    def __init__( self, iterObjs ):
-        self.stop = array(iterObjs) - 1
-        #assuming here that the start of each dimension is zero
-        self.value = zeros(size( iterObjs ))
-        if len( self.value ) > 0:
-            self.value[0] -= 1
-        self.start = self.value.copy()
-    
-    def __iter__( self ):
-        return self
-    
-    def next( self ):
-        if alltrue( self.value == self.stop ):
-            self.value = self.start.copy()
-            raise StopIteration
-        
-        for i in range(size( self.stop )):
-            if self.value[i] == self.stop[i]:
-                self.value[i] = 0
-            else:
-                self.value[i] += 1
-                break
-        
-        return self.value
+def SequenceGenerator(iterObjs):
+    assert(isinstance(iterObjs, ArrayType))
+    stop = iterObjs - 1
+    value = zeros(len(iterObjs))
+    value[0] -= 1
+    while True:
+        while not alltrue(value == stop):
+            for i in range(len(stop)):
+                if value[i] == stop[i]:
+                    value[i] = 0
+                else:
+                    value[i] += 1
+                    break
+            yield value
+        value = zeros(len(iterObjs))
+        value[0] -= 1
+        raise StopIteration
 
 
 class PriorityQueue:
