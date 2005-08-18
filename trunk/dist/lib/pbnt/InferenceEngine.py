@@ -8,15 +8,11 @@ from Node import *
 from Utilities.Utilities import *
 import Utilities.GraphUtilities as GraphUtilities
 
-"""This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms 
-are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference 
-object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by 
-other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
+"""This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
 """
 
 class InferenceEngine:
-    """ This is the parent class of all inference engines.  It defines several very basic methods 
-    that are used by all inference engines.
+    """ This is the parent class of all inference engines.  It defines several very basic methods that are used by all inference engines.
     """
     
     def __init__(self, bnet):
@@ -34,12 +30,7 @@ class InferenceEngine:
 
 
 class EnumerationEngine(InferenceEngine):
-    """ Enumeration Engine uses an unoptimized fully enumerate brute force method to compute the 
-    marginal of a query.  It also uses the standard constructor, init_evidence, and 
-    change_evidence methods.  In this engine, we use a hack.  We have to check and see if the 
-    variable is unobserved.  If it is not, then we know that the probability of that value is 
-    automatically 1.  We use this hack, because in order to do it properly, a table of likelihoods
-    that incorporates the evidence would have to be constructed, this is very costly.
+    """ Enumeration Engine uses an unoptimized fully enumerate brute force method to compute the marginal of a query.  It also uses the standard constructor, init_evidence, and change_evidence methods.  In this engine, we use a hack.  We have to check and see if the variable is unobserved.  If it is not, then we know that the probability of that value is automatically 1.  We use this hack, because in order to do it properly, a table of likelihoods that incorporates the evidence would have to be constructed, this is very costly.
     """
 
     def marginal ( self, nodes ):
@@ -60,15 +51,11 @@ class EnumerationEngine(InferenceEngine):
             distList += Q
         return distList
     
-    """ The following methods could be functions, but I made them private methods because they
-    are functions that should only be used internally to the class.
-    ADVICE: James, do you think these should remain as private methods or become function calls?
+    """ The following methods could be functions, but I made them private methods because the are functions that should only be used internally to the class. ADVICE: James, do you think these should remain as private methods or become function calls?
     """
 
     def __enumerate_all (self, node, value):
-        """ We are going to iterate through all values of all non-evidence nodes. For each state
-        of the evidence we sum the probability of that state by the probabilities of all 
-        other states.
+        """ We are going to iterate through all values of all non-evidence nodes. For each state of the evidence we sum the probability of that state by the probabilities of all other states.
         """
         oldValue = self.evidence[node.index]
         # Set the value of the query node to value, since we don't want to iterate over it.
@@ -119,11 +106,7 @@ class EnumerationEngine(InferenceEngine):
 
 
 class JunctionTreeEngine(InferenceEngine):
-    """ This implementation of the Junction Tree inference algorithm comes from "Belief Networks: 
-    A Procedural Guide" By Cecil Huang an Adnan Darwiche (1996).  See also Kevin Murhpy's PhD 
-    Dissertation.  Roughly this algorithm decomposes the given bayes net to a moral graph, 
-    triangulates the moral graph, and collects it into cliques and joins the cliques into a join 
-    tree.  The marginal is then computed from the constructed join tree.
+    """ This implementation of the Junction Tree inference algorithm comes from "Belief Networks: A Procedural Guide" By Cecil Huang an Adnan Darwiche (1996).  See also Kevin Murhpy's PhD Dissertation.  Roughly this algorithm decomposes the given bayes net to a moral graph, triangulates the moral graph, and collects it into cliques and joins the cliques into a join tree.  The marginal is then computed from the constructed join tree.
     """
 
     def __init__ (self, bnet):
@@ -134,11 +117,10 @@ class JunctionTreeEngine(InferenceEngine):
         # Triangulate the graph
         triangulatedGraph = TriangleGraph( moralGraph )
         # Build a join tree and initialize it.
-        self.joinTree = self.BuildJoinTree(triangulatedGraph)
+        self.joinTree = self.build_join_tree(triangulatedGraph)
     
     def change_evidence(self, nodes, values):
-        """ Override parent's method because in a junction tree we have to perform an update or a 
-        retraction based on the changes to the evidence.
+        """ Override parent's method because in a junction tree we have to perform an update or a retraction based on the changes to the evidence.
         """
         # 0 = no change, 1 = update, 2 = retract
         isChange = 0
@@ -251,7 +233,7 @@ class JunctionTreeEngine(InferenceEngine):
             index = clique.potential.generate_index(seq, cliqueAxes)
             clique.potential[index] *= oldPotential[seq]
 
-    def BuildJoinTree (self, triangulatedGraph):
+    def build_join_tree (self, triangulatedGraph):
         # The Triangulated Graph is really a graph of cliques.
         cliques = triangulatedGraph.cliques
         # We start by creating a forest of trees, one for each clique.
@@ -260,8 +242,8 @@ class JunctionTreeEngine(InferenceEngine):
         # Create sepsets by matching each clique with every other clique.
         for i in range(len(cliques) - 1):
             for clique in cliques[i+1:]:
-                sepset = Sepset( cliques[i], clique )
-                sepsetHeap.insert( sepset )
+                sepset = Sepset(cliques[i], clique)
+                sepsetHeap.insert(sepset)
         
         # Join n - 1 sepsets together forming (hopefully) a single tree.
         for n in range(len(forest) - 1):
@@ -290,8 +272,7 @@ class JunctionTreeEngine(InferenceEngine):
     
 
 class JunctionTreeDBNEngine(JunctionTreeEngine):
-    """ JunctionTreeDBNEngine is the JunctionTreeEngine for dynamic networks.  It is far from done.  This is more of a 
-    place holder as of right now.
+    """ JunctionTreeDBNEngine is the JunctionTreeEngine for dynamic networks.  It is far from done.  This is more of a place holder as of right now.
     """
     
     def __init__(self, DBN):

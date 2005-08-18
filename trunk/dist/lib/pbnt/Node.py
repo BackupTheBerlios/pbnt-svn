@@ -3,8 +3,7 @@ from numarray import *
 from DiscreteDistribution import *
 
 class Node:
-    """ A Node is the basic element of a graph.  In its most basic form a graph is just a list of 
-    Nodes.  A Node is a really just a list of neighbors.  
+    """ A Node is the basic element of a graph.  In its most basic form a graph is just a list of nodes.  A Node is a really just a list of neighbors.  
     """
     def __init__(self, id, index=-1, name="anonymous"):
         # This defines a list of edges to other nodes in the graph.
@@ -27,9 +26,7 @@ class Node:
         return self.id == right.id
             
     def add_neighbor(self, node):
-        """ Make node a neighbor if it is not alreadly.  This is a hack, we should be allowing 
-        self to be a neighbor of self in some graphs.  This should be enforced at the level of a 
-        graph, because that is where the type of the graph would disallow it.
+        """ Make node a neighbor if it is not alreadly.  This is a hack, we should be allowing self to be a neighbor of self in some graphs.  This should be enforced at the level of a graph, because that is where the type of the graph would disallow it.
         """
         if not (node in self.neighbors or self == node):
             self.neighbors.append(node)
@@ -44,9 +41,7 @@ class Node:
         return node in self.neighbors
 
 class DirectedNode(Node):
-    """ This is the child class of Node.  Instead of mainting a list of neighbors, it maintains
-    a list of parents and children.  Of course since it is the child of Node, it does technically
-    have a list of neighbors (though it should remain empty).
+    """ This is the child class of Node.  Instead of mainting a list of neighbors, it maintains a list of parents and children.  Of course since it is the child of Node, it does technically have a list of neighbors (though it should remain empty).
     """
     def __init__(self, id, index=-1, name="anonymous"):
         Node.__init__(self, id, index, name)
@@ -75,17 +70,12 @@ class DirectedNode(Node):
         self.children.remove(child)
     
     def undirect( self ):
-        """ This drops the direction of self's edges.  This doesn't exactly destroy it since 
-        self still maintains lists of parents and children.  We could think of this as allowing
-        us to treat self as both directed and undirected simply allowing it to be casted as one
-        at one moment and the other at another moment.
+        """ This drops the direction of self's edges.  This doesn't exactly destroy it since self still maintains lists of parents and children.  We could think of this as allowing us to treat self as both directed and undirected simply allowing it to be casted as one at one moment and the other at another moment.
         """
         self.neighbors = self.parents + self.children
 
 class BayesNode(DirectedNode):
-    """ BayesNode is a child class of DirectedNode.  Essentially it is a DirectedNode with some added fields that make it more
-    appropriate for a Bayesian Network, such as a field for a distribution and arrays of indices. The arrays are indices 
-    of its parents and children; that is the index of its neighbor within the overall bayes net.
+    """ BayesNode is a child class of DirectedNode.  Essentially it is a DirectedNode with some added fields that make it more appropriate for a Bayesian Network, such as a field for a distribution and arrays of indices. The arrays are indices of its parents and children; that is the index of its neighbor within the overall bayes net.
     """
     #this is a node for a Bayesian Network, which is a directed node with some extra fields
     def __init__(self, id, numValues, index=-1, name="anonymous"):
@@ -109,10 +99,7 @@ class BayesNode(DirectedNode):
 
 
 class Clique(Node):
-    """ Clique inherits from Node.  Clique's are clusters which act as a single node within a JoinTree.  
-    They are equivalent in JoinTrees to BayesNodes' in Bayesian Networks.  The main difference is that they have "potentials"
-    instead of distributions.  Potentials are in effect the same as a conditional distribution, but unlike conditional 
-    distribtions, there isn't as clear a sense that the distribution is over one node and conditioned on a number of others.
+    """ Clique inherits from Node.  Clique's are clusters which act as a single node within a JoinTree. They are equivalent in JoinTrees to BayesNodes' in Bayesian Networks.  The main difference is that they have "potentials" instead of distributions.  Potentials are in effect the same as a conditional distribution, but unlike conditional distribtions, there isn't as clear a sense that the distribution is over one node and conditioned on a number of others.
     """    
     
     def __init__(self, nodes):
@@ -135,8 +122,7 @@ class Clique(Node):
         self.sepsets.append(sepset)
                 
     def init_potential(self, node):
-        """ We can either iterate through all of the dimensions of node, or all of the dimensions of
-        self.potential that are not related to node.  Which ever is fewer will be faster. 
+        """ We can either iterate through all of the dimensions of node, or all of the dimensions of self.potential that are not related to node.  Which ever is fewer will be faster. 
         """
         parentIndices = [self.nodes.index(node) for node in variable.parents + [variable]]
         nNodeDims = len(node.parents) + 1
@@ -180,8 +166,7 @@ class Clique(Node):
  
 
 class Sepset( Node ):
-    """ Sepsets sit between Cliques in a join tree.  They represent the intersection of the 
-    variables in the two member Cliques.  They facilitate passing messages between the two cliques.
+    """ Sepsets sit between Cliques in a join tree.  They represent the intersection of the variables in the two member Cliques.  They facilitate passing messages between the two cliques.
     """
     
     def __init__(self, cliqueX, cliqueY):

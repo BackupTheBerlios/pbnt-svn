@@ -9,8 +9,7 @@ def updateParams (bnet, trials):
     for t in range(shape( trials )[1]): 
         trial = trials[:,t]
         utilities.updateCounts(bnet.nodes, counts, trial)
-    
-    bnet.addCounts(counts)
+    bnet.add_counts(counts)
 
 
 #We are going to start with a very simple but poor approach.  We are going to use the engine

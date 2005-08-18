@@ -3,9 +3,7 @@ import GraphUtilities
 
 
 class Potential:
-    """ Potentials are very similar to a conditional distribution in that they specify the probability over a set of nodes.
-    The difference is that potentials are not thought of as being centered on the value a one node given other nodes.  
-    Therefore, a conditional distribution could be thought of as a special case of a potential.
+    """ Potentials are very similar to a conditional distribution in that they specify the probability over a set of nodes. The difference is that potentials are not thought of as being centered on the value a one node given other nodes. Therefore, a conditional distribution could be thought of as a special case of a potential.
     """
     
     def __init__(self, nodes=[], table=[]):
@@ -42,26 +40,20 @@ class Potential:
             s[val] = slice(index[i], index[i]+1)
         return s
     
-    """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even
-    if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they
-    are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two 
-    advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting
-    from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, 
-    if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect
-    anything else, because everything else with be abstracted away.  This is further guaranteed by generateIndex which
-    generates an index for its class given which axes should be set and what the value of those axes are.
+    """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generateIndex which generates an index for its class given which axes should be set and what the value of those axes are.
     """
     def __getitem__(self, index):
         return self.table[index]
     
     def __setitem__(self, index, value):
         self.table[index] = value
+    
+    def __add__(self, right):
+        return self.table + right.table
         
     
 class DiscreteDistribution(Potential):
-    """ The basic class for a distribution, it defines a simple distribution over a set number of 
-    values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete 
-    distribution conditioned on other discrete distributions.
+    """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.
     """
     
     def __init__(self, numValues):
@@ -77,8 +69,7 @@ class DiscreteDistribution(Potential):
         
         
 class ConditionalDiscreteDistribution(Potential):
-    """ This is very similar to a potential, except that ConditionalDiscreteDistributions are focused 
-    on a single variable and its value conditioned on other variables.
+    """ This is very similar to a potential, except that ConditionalDiscreteDistributions are focused on a single variable and its value conditioned on other variables.
     """
 
     def __init__(self, nodes=[], table=[]):

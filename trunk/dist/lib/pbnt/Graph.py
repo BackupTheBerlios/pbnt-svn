@@ -10,8 +10,7 @@ except NameError:
     set = sets.Set
 
 class Graph:
-    """ Graph is the parent of all other graph classes.  It defines a very basic undirected graph class.  It essentially is 
-    just a list of nodes, and it is the nodes that maintain their own lists of parents and children.
+    """ Graph is the parent of all other graph classes.  It defines a very basic undirected graph class.  It essentially is just a list of nodes, and it is the nodes that maintain their own lists of parents and children.
     """
     
     def __init__(self, nodes):
@@ -41,9 +40,7 @@ class Graph:
    
    
 class DAG(Graph):
-    """ Child of Graph class.  It is very similar to Graph class with the addition of a couple of methods aimed at a graph of
-    nodes that are directed.  Currently this class does not ensure that it is acyclic, but it is assumed that the user
-    will not violate this principle.
+    """ Child of Graph class.  It is very similar to Graph class with the addition of a couple of methods aimed at a graph of nodes that are directed.  Currently this class does not ensure that it is acyclic, but it is assumed that the user will not violate this principle.
     """
     
     def __init__(self, nodes):
@@ -67,8 +64,7 @@ class DAG(Graph):
 
 
 class BayesNet(DAG):
-    """  This is an actual Bayesian Network.  It is essentially a DAG, but it has several extra methods and fields that are 
-    used by associated inference and learning algorithms.
+    """  This is an actual Bayesian Network.  It is essentially a DAG, but it has several extra methods and fields that are used by associated inference and learning algorithms.
     """
     
     def __init__(self, nodes):
@@ -90,19 +86,28 @@ class BayesNet(DAG):
     
     def counts(self):
         # Return an array of matrices that can be used as a way to build a set of counts
-        # This is also breaking down the abstraction barrier by accessing CPT, should be investigated at a later date.
-        return array([node.dist.table.copy() for node in self.nodes])
+        # This is also breaking down the abstraction barrier by accessing CPT, 
+        # should be investigated at a later date.
+        return [copy.deepcopy(node.dist) for node in self.nodes]
     
     def add_counts(self, counts):
         # Update the internal CPTs with the given counts
         for node in self.nodes:
-            node.dist[:] += counts[node.index]
+            count = counts[node.index]
+            node.dist += count
             node.dist.normalize()
+    
+    def update_counts(self, counts, evidence):
+        for node in self.nodes:
+            count = counts[node.index]
+            evIndex = node.evidence_index()
+            values = evidence[evIndex]
+            index = count.generateIndex(evIndex, range(count.nDims))
+            count[index] += 1
 
             
 class MoralGraph(Graph):
-    """  A MoralGraph is an undirected graph that is built by connecting all of the parents of a directed graph and 
-    dropping the direction of the edges.
+    """  A MoralGraph is an undirected graph that is built by connecting all of the parents of a directed graph and dropping the direction of the edges.
     """
     
     def __init__(self, DAG):
@@ -118,11 +123,7 @@ class MoralGraph(Graph):
                     self.connect_nodes(node.parents[i], parent)
 
 class MoralDBNGraph(MoralGraph):
-    """ This is not finished yet.  The plan is to use this class to create a MoralGraph for use in Dynamic Bayes Nets.
-    The primary difference between doing JunctionTreeInference on a DBN from a static bayes net is that I have to ensure
-    that the forward interface and the backward interface are both contained in a clique of the final join tree.  This can 
-    be ensured by making sure that all of the nodes in the two interfaces are connected.  For more details and a justification
-    please see Kevin Murphy's dissertation.
+    """ This is not finished yet.  The plan is to use this class to create a MoralGraph for use in Dynamic Bayes Nets. The primary difference between doing JunctionTreeInference on a DBN from a static bayes net is that I have to ensure that the forward interface and the backward interface are both contained in a clique of the final join tree.  This can be ensured by making sure that all of the nodes in the two interfaces are connected.  For more details and a justification please see Kevin Murphy's dissertation.
     """
     
     def __init__(self, DBN):
@@ -139,13 +140,7 @@ class MoralDBNGraph(MoralGraph):
                     
 
 class TriangleGraph(Graph):
-    """ TriangleGraph is constructed from the MoralGraph.  It is the triangulated graph.  It is constructed by identifying 
-    clusters of nodes according to a given heuristic.  There are many heuristics that can be used, and in this implementation
-    the heuristic is implemented in the ClusterBinaryHeap and can therefore be changed independent of this class.  The heap
-    acts as a priority queue.  After the heap has been created, we remove nodes from the heap and use the information to 
-    create Cliques.  The Cliques are then added to the graph if they are not contained in a previous Clique.  
-    TODO: Move addClique to this class from GraphUtilities.  Reimplement ClusterBinaryHeap as a built in python priority
-    queue.
+    """ TriangleGraph is constructed from the MoralGraph.  It is the triangulated graph.  It is constructed by identifying clusters of nodes according to a given heuristic.  There are many heuristics that can be used, and in this implementation the heuristic is implemented in the ClusterBinaryHeap and can therefore be changed independent of this class.  The heap acts as a priority queue.  After the heap has been created, we remove nodes from the heap and use the information to create Cliques.  The Cliques are then added to the graph if they are not contained in a previous Clique.  TODO: Move addClique to this class from GraphUtilities.  Reimplement ClusterBinaryHeap as a built in python priority queue.
     """
     
     def __init__(self, moral):
@@ -154,14 +149,13 @@ class TriangleGraph(Graph):
         # Copy the graph so that we can destroy the copy as we insert it into heap.
         for i, node in enumerate(copy.deepcopy(moral.nodes)):
             node.index = i
-            #have to copy so that when we destory neighbor lists it wont affect the actual graph
             heap.insert(node)
         inducedCliques = []
         for (node, edges) in heap:
             realnode = self.nodes[node.index]
             for edge in edges:
-                # We need to make sure we reference the nodes in the actual graph, not the copied ones that were inserted
-                # into the heap.
+                # We need to make sure we reference the nodes in the actual graph, 
+                # not the copied ones that were inserted into the heap.
                 node1 = self.nodes[node.neighbors[edge[0]].index]
                 node2 = self.nodes[node.neighbors[edge[1]].index]
                 self.connect_nodes(node1, node2)
@@ -172,11 +166,7 @@ class TriangleGraph(Graph):
         
 
 class JoinTree(Graph):
-    """ JoinTree is the final graph that is constructed for JunctionTree Inference.  To create the JoinTree, we first create
-    a forest of n JoinTrees where each tree consists of a single clique (n is the number of cliques).  Then we create a list
-    of all distinct pairs.  Then we insert a sepset between each pair of cliques.  Then we loop n - 1 times.  
-    At each iteration, we choose the next best sepset according to some heuristic.  If we the two cliques connected to the 
-    sepset are on different trees, we join them into one larger tree.    
+    """ JoinTree is the final graph that is constructed for JunctionTree Inference.  To create the JoinTree, we first create a forest of n JoinTrees where each tree consists of a single clique (n is the number of cliques).  Then we create a list of all distinct pairs.  Then we insert a sepset between each pair of cliques.  Then we loop n - 1 times.  At each iteration, we choose the next best sepset according to some heuristic.  If we the two cliques connected to the sepset are on different trees, we join them into one larger tree.    
     """
     
     #use constructor from Graph, will take either a single clique or a list of them
@@ -224,7 +214,8 @@ class JoinTree(Graph):
             node = nodes[nodeI]
             clique = node.clique
             axis = [clique.nodes.index(node)]
-            # FIXME: This really should be a plain numarray object and then indexed with a slice object
+            # FIXME: This really should be a plain numarray object and 
+            # then indexed with a slice object
             potentialMask = Potential(clique.nodes)
             potentialMask[:] = 0
             index = potentialMask.generateIndex(value, axis)
