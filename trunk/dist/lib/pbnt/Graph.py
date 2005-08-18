@@ -96,7 +96,7 @@ class BayesNet(DAG):
     def add_counts(self, counts):
         # Update the internal CPTs with the given counts
         for node in self.nodes:
-            node.dist.table += counts[node.index]
+            node.dist[:] += counts[node.index]
             node.dist.normalize()
 
             
@@ -107,17 +107,15 @@ class MoralGraph(Graph):
     
     def __init__(self, DAG):
         Graph.__init__(self, DAG.nodes)
-        
         #undirect the nodes
         for node in self.nodes:
             node.undirect()
-        
         #connect all pairs of parents
         for node in self.nodes:
             parents = node.parents
             for i in range(len(parents)):
                 for parent in parents[i:]:
-                    self.phUtilities.connect_nodes(node.parents[i], parent)
+                    self.connect_nodes(node.parents[i], parent)
 
 class MoralDBNGraph(MoralGraph):
     """ This is not finished yet.  The plan is to use this class to create a MoralGraph for use in Dynamic Bayes Nets.
@@ -158,15 +156,15 @@ class TriangleGraph(Graph):
             node.index = i
             #have to copy so that when we destory neighbor lists it wont affect the actual graph
             heap.insert(node)
-        
         inducedCliques = []
         for (node, edges) in heap:
             realnode = self.nodes[node.index]
             for edge in edges:
                 # We need to make sure we reference the nodes in the actual graph, not the copied ones that were inserted
                 # into the heap.
-                self.connect_nodes(self.nodes[node.neighbors[edge[0]].index], self.nodes[node.neighbors[edge[1]].index])
-            
+                node1 = self.nodes[node.neighbors[edge[0]].index]
+                node2 = self.nodes[node.neighbors[edge[1]].index]
+                self.connect_nodes(node1, node2)
             clique = Clique([realnode] + realnode.neighbors)
             # We only add clique to inducedCliques if is not contained in a previously added clique
             GraphUtilities.addClique(inducedCliques, clique) 
@@ -228,7 +226,8 @@ class JoinTree(Graph):
             axis = [clique.nodes.index(node)]
             # FIXME: This really should be a plain numarray object and then indexed with a slice object
             potentialMask = Potential(clique.nodes)
-            potentialMask.table.flat[:] = 0
-            potentialMask.setValue(value, 1, axes=axis)
-            clique.potential.table *= potentialMask.table    
+            potentialMask[:] = 0
+            index = potentialMask.generateIndex(value, axis)
+            potentialMask[index] = 1
+            clique.potential[:] *= potentialMask[:]   
     
