@@ -33,7 +33,7 @@ class Potential:
             if not c == 0:
                 self.table /= c
     
-    def generateIndex(self, index, axis):
+    def generate_index(self, index, axis):
         # Takes in a list of indices and a list of corresponding axes.  Returns a list of slice objects that will access the 
         # equivalent position. Currently it only replaces missing axes with slice(None) objects, but eventually
         # I want to support more complex notions of i:j.

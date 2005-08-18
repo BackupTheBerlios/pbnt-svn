@@ -113,7 +113,7 @@ class EnumerationEngine(InferenceEngine):
             dist = node.dist
             vals = state[node.evidence_index()]
             # Generate a slice object to index into dist using vals.
-            index = dist.generateIndex(vals, range(dist.nDims))
+            index = dist.generate_index(vals, range(dist.nDims))
             Q *= node.dist[index]
         return Q
 
@@ -178,7 +178,7 @@ class JunctionTreeEngine(InferenceEngine):
             Q = DiscreteDistribution(node.size())
             for value in range(node.size()):
                 potential = node.clique.potential
-                index = potential.generateIndex([value], [node.clique.nodes.index(node)])
+                index = potential.generate_index([value], [node.clique.nodes.index(node)])
                 Q[value] = potential[index].sum()
             Q.normalize()
             distributions.append(Q)
@@ -188,86 +188,68 @@ class JunctionTreeEngine(InferenceEngine):
     def global_propagation(self):
         self.joinTree.initialized = False
         # Arbitrarily pick a cluster to be the root node, could be OPTIMIZED
-        startCluster = self.joinTree.nodes[0]
+        startClique = self.joinTree.nodes[0]
         GraphUtilities.unmark_all_nodes(self.joinTree)
         # We use 0 to denote that there was no prevCluster
-        self.collect_evidence(0, startCluster, 0, True)
+        self.collect_evidence(0, startClique, 0, True)
         GraphUtilities.unmark_all_nodes(self.joinTree)
-        self.distribute_evidence(startCluster)
+        self.distribute_evidence(startClique)
     
-    def collect_evidence(self, prevCluster, currentCluster, sepset, isStart):
+    def collect_evidence(self, prevClique, currentClique, sepset, isStart):
         # In this stage we send messages from the outer nodes toward a root node.
-        currentCluster.visited = 1
-        for (neighbor, sep) in zip(currentCluster.neighbors, currentCluster.sepsets):
+        currentClique.visited = 1
+        for (neighbor, sep) in zip(currentClique.neighbors, currentClique.sepsets):
             # Do a DFS search of the tree, only visiting unvisited nodes
             if not neighbor.visited:
-                self.collect_evidence(currentCluster, neighbor, sep, 0)
+                self.collect_evidence(currentClique, neighbor, sep, 0)
         if not isStart:
             # After we have found the leaf (or iterated over all neighbors) send a message
             # back toward the root.
-            self.pass_message(currentCluster, prevCluster, sepset)
+            self.pass_message(currentClique, prevClique, sepset)
     
-    def distribute_evidence(self, cluster):
+    def distribute_evidence(self, clique):
         # Send messages from root node out toward leaf nodes
-        cluster.visited = 1
-        for (neighbor, sep) in zip(cluster.neighbors, cluster.sepsets):
+        clique.visited = 1
+        for (neighbor, sep) in zip(clique.neighbors, clique.sepsets):
             # Perform DFS passing messages as we go from one node to the next
             if not neighbor.visited:
                 self.pass_message(cluster, neighbor, sep)
                 self.distribute_evidence(neighbor)
     
-    def pass_message(self, fromCluster, toCluster, sepset):
+    def pass_message(self, fromClique, toClique, sepset):
         # Project the fromCluster onto the sepset, oldSepsetPotential is the sepset's potential
         # before it is affected by the internals of project
-        oldSepsetPotential = self.project(fromCluster, sepset) 
+        oldSepsetPotential = self.project(fromClique, sepset) 
         # Absorb the sepset into the toCluster
-        self.absorb(toCluster, sepset, oldSepsetPotential)
+        self.absorb(toClique, sepset, oldSepsetPotential)
     
-    def project(self, cluster, sepset):
-        # Marginalize the cluster given the variables in the sepset
+    def project(self, clique, sepset):
+        # project marginalizes the cluster given the variables in the sepset
         oldSepsetPotential = copy.deepcopy(sepset.potential)
-        # mu defines all of the indices within sepset, we use clusterAxes and sepsetAxes
-        # to facilitate translation between these two domains.
-        # OPTIMIZE: would be optimal to have mu iterate over the smaller of the two: num 
-        # variables in sepset vs variables in cluster but not in sepset
-        mu = sepset.mu
-        # The axes within cluster that refer to the variables in sepset
-        clusterAxes = sepset.clique_axes(cluster)
-        # The sepset axes in the proper order to refer to its variables within the cluster
-        sepsetAxes = sepset.axis
-        for index in mu:
-            # Array of values that correspond to a : over the dimensions of 
-            # cluster that are not in sepset.
-            values = cluster.CPT.getValue(index, clusterAxes)
-            # Sum the values, because the multiple values in cluster correspond to a single place
-            # in sepset.
-            sepset.potential.setValue(index, values.sum(), axes=sepsetAxes)
-        # We change the internal potential, but still need access to the old one, so return it.
+        # This list of axes orders the standard range(sepset.potential.nDims) so that it references the clique.
+        cliqueAxes = sepset.clique_axes(clique)
+        # This could be optimized by finding a better way index clique with all of the seqs at the same time
+        # and then summing over those possible values and assigning the answer to the sepset potential.
+        for seq in sequence:
+            index = clique.potential.generate_index(seq, cliqueAxes)
+            sepset.potential[seq] = clique.potential[index].sum()
         return oldSepsetPotential
                 
-    def absorb(self, cluster, sepset, oldPotential):
-        # Divide sepset.potential (the newly affected potential) by oldPotential (the one 
+    def absorb(self, clique, sepset, oldPotential):
+        # absorb divides sepset.potential (the newly affected potential) by oldPotential (the one 
         # unaffected by project).  Then multiply the result by the cluster's potential.
-        mu = sepset.mu
-        # The sepset axes in the order that corresponds to cluster.
-        sepsetAxes = sepset.axis
-        # The axes of cluster that correspond to the variables in sepset.
-        clusterAxes = sepset.cliqueAxes( cluster )
+        # The axes of clique that correspond to the variables in sepset.
+        cliqueAxes = sepset.cliqueAxes(clique)
         # This will set all values of the cluster potential to 0 that are not consistent with 
         # the evidence.
-        zeroMask = oldPotential.CPT == 0
+        zeroMask = oldPotential[:] == 0
         # Division of the new and old potentials
-        oldPotential.CPT = sepset.potential.CPT / oldPotential.CPT
+        oldPotential[:] = sepset.potential[:] / oldPotential[:]
         # Get rid of inconsistent values.
-        oldPotential.CPT[zeroMask] = 0 
-        for index in mu:
-            # Use mu to identify the elements of each potential 
-            # that should be multiplied together.
-            sepsetValue = oldPotential.getValue( index, sepsetAxes )
-            clusterValues = cluster.CPT.getValue( index, clusterAxes )
-            newValues = clusterValues * sepsetValue
-            cluster.CPT.setValue( index, newValues, clusterAxes )    
-
+        oldPotential[zeroMask] = 0 
+        for seq in SequenceGenerator(sepset.potential.dims):
+            index = clique.potential.generate_index(seq, cliqueAxes)
+            clique.potential[index] *= oldPotential[seq]
 
     def BuildJoinTree (self, triangulatedGraph):
         # The Triangulated Graph is really a graph of cliques.
@@ -297,7 +279,7 @@ class JunctionTreeEngine(InferenceEngine):
                     break
                 
         for tree in forest:
-            tree.initCliquePotentials(self.bnet.nodes)
+            tree.init_clique_potentials(self.bnet.nodes)
         
         # We return the forest here, but in reality we are only set to 
         # compute marginals on a single tree, not a forest of trees.

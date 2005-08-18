@@ -1,8 +1,8 @@
 #don't have to import BayesNet, DiscreteDistribution, 
 #or numarray because it is done in ExampleModels
 import ExampleModels as EX
-from JunctionTreeEngine import *
-from utilities import *
+from InferenceEngine import *
+from Utilities.Utilities import *
 
 def test():
 	
