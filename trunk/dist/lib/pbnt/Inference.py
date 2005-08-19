@@ -1,12 +1,14 @@
 #Major Packages
 from numarray import *
 import numarray.ieeespecial as ieee
+import numarray.random_array as ra
 
 #Local Project Modules
 from Graph import *
 from Node import *
-from Utilities.Utilities import *
-import Utilities.GraphUtilities as GraphUtilities
+from Distribution import *
+from Utilities import *
+import GraphUtilities
 
 """This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
 """
@@ -78,7 +80,7 @@ class EnumerationEngine(InferenceEngine):
         # Generate the next possible state of the evidence.
         numberOfNodes = len(nonEvidenceNodes)
         for index in nonEvidence:
-            if self.evidence[index] == (self.bnet.nodes(index).nodeSize - 1):
+            if self.evidence[index] == (self.bnet.nodes(index).size() - 1):
                 # If the value of the node is its max value, then reset it.
                 if index == nonEvidence[numberOfNodes - 1]:
                     # If we iterated through to the last nonEvidence node, and didn't find a new 
@@ -105,69 +107,66 @@ class EnumerationEngine(InferenceEngine):
         return Q
 
 class MCMCEngine( InferenceEngine ):
-	#implemented as described in Russell and Norvig
-	#X is a list of variables
-	#N is thenumber of samples
-	def marginal ( self, X, N ):
-		flipped = 0
-		Nx = [DiscreteDistribution(zeros(x.nodeSize, type=Float32), x.nodeSize) for x in X]
-		queryIndex = array([x.index for x in X])
-		state = self.evidence.copy()
-		nonEvMask = state == -1
-		nonEv = obj.array(self.bnet.nodes)[nonEvMask]
-		randMax = array([node.nodeSize for node in nonEv])
-		#ASSUMPTION: zero is the minimum value
-		randMin = zeros([len( nonEv )])
-		#initialize nonEvidence variables to random values
-		state[nonEvMask] = ra.randint( randMin, randMax )
-		#FOR DEBUGGING ONLY
-		valuesList = []
+        #implemented as described in Russell and Norvig
+        #X is a list of variables
+        #N is thenumber of samples
+        def marginal ( self, X, N ):
+            flipped = 0
+            Nx = [DiscreteDistribution(x.size()) for x in X]
+            queryIndex = array([x.index for x in X])
+            state = self.evidence.copy()
+            nonEvMask = state == -1
+            nonEv = obj.array(self.bnet.nodes)[nonEvMask]
+            randMax = array([node.size() for node in nonEv])
+            #ASSUMPTION: zero is the minimum value
+            randMin = zeros([len( nonEv )])
+            #initialize nonEvidence variables to random values
+            state[nonEvMask] = ra.randint( randMin, randMax )
+            #FOR DEBUGGING ONLY
+            valuesList = []
+            for i in range( N ):
+                valuesList += [state[3]]
+                #record the value of all of the query variables
+                if i > 100:
+                    for (q, dist) in zip(queryIndex, Nx):
+                        dist.CPT[state[q]] += 1
+                        for node in nonEv:
+                            val = self.sampleValueGivenMB(node, state)
+                            #change the state to reflect new value of given variable
+                            if not state[node.index] == val:
+                                state[node.index] = val
+                                flipped += 1               
+            for i in range(len( Nx )):
+                Nx[i].normalise()
+            return Nx
+                                
 
-		for i in range( N ):
-			valuesList += [state[3]]
-			#record the value of all of the query variables
-			if i > 100:
-				for (q, dist) in zip(queryIndex, Nx):
-					dist.CPT[state[q]] += 1
-			for node in nonEv:
-				val = self.sampleValueGivenMB(node, state)
-				#change the state to reflect new value of given variable
-				if not state[node.index] == val:
-					state[node.index] = val
-					flipped += 1
-
-		for i in range(len( Nx )):
-			Nx[i].normalise()
-		
-		return Nx
-
-
-	def sampleValueGivenMB( self, node, state ):
-		#init to be the prob dist of node given parents
-		parents = node.parents
-		parentsI = array([p.index for p in parents])
-		#ASSUMPTION: node is arranged by parents
-		MBval = node.CPT.getValue( state[parentsI], axes=range( node.CPT.nDims - 1 ) )
-		children = node.children
-		#want to save state
-		oldVal = state[node.index]
-		#OPTIMIZE: could vectorize this code
-		for value in range(node.nodeSize):
-			state[node.index] = value
-			for child in children:
-				childPsI = [p.index for p in child.parents]
-				parentVals = state[childPsI]
-				childVal = state[child.index]
-				indices = concatenate((parentVals, childVal))
-				MBval[value] *= child.CPT.getValue(indices)
-		
-		state[node.index] = oldVal
-		#FIX THIS: better representation of distributions
-		#normalize MBval
-		MBval /= MBval.sum()
-		
-		val = util.sample(MBval)
-		return val
+        def sampleValueGivenMB( self, node, state ):
+                #init to be the prob dist of node given parents
+                parents = node.parents
+                parentsI = array([p.index for p in parents])
+                #ASSUMPTION: node is arranged by parents
+                MBval = node.CPT.getValue( state[parentsI], axes=range( node.CPT.nDims - 1 ) )
+                children = node.children
+                #want to save state
+                oldVal = state[node.index]
+                #OPTIMIZE: could vectorize this code
+                for value in range(node.size()):
+                        state[node.index] = value
+                        for child in children:
+                                childPsI = [p.index for p in child.parents]
+                                parentVals = state[childPsI]
+                                childVal = state[child.index]
+                                indices = concatenate((parentVals, childVal))
+                                MBval[value] *= child.CPT.getValue(indices)
+                
+                state[node.index] = oldVal
+                #FIX THIS: better representation of distributions
+                #normalize MBval
+                MBval /= MBval.sum()
+                
+                val = util.sample(MBval)
+                return val
 
 
 class JunctionTreeEngine(InferenceEngine):
@@ -202,14 +201,23 @@ class JunctionTreeEngine(InferenceEngine):
                     isChange = 1
         
         if isChange == 1:
+            # Just to avoid import errors
+            assert(1 == 1)
+            
             # Do a global update
             for node in changedNodes:
+                # Just to avoid import errors
+                assert(1 == 1)
+            
                 # Update potential X and its likelihood with the new observation
                 # Then do global propagation (if only 1 cluster affected only have 
                 # to distribute evidence.
         elif isChange == 2:
             # Do a global retraction: Encode the new likelihoods (and do observation entry), 
             # Reinitialize the join tree, do a Global propagation.
+            
+            # Just to avoid import errors
+            assert(1 == 1)
                 
     def marginal(self, query):
         # DELETE: When change_evidence is completed delete this.
@@ -234,7 +242,7 @@ class JunctionTreeEngine(InferenceEngine):
         
     def global_propagation(self):
         self.joinTree.initialized = False
-        # Arbitrarily pick a cluster to be the root node, could be OPTIMIZED
+        # Arbitrarily pick a clique to be the root node, could be OPTIMIZED
         startClique = self.joinTree.nodes[0]
         GraphUtilities.unmark_all_nodes(self.joinTree)
         # We use 0 to denote that there was no prevCluster
@@ -260,7 +268,7 @@ class JunctionTreeEngine(InferenceEngine):
         for (neighbor, sep) in zip(clique.neighbors, clique.sepsets):
             # Perform DFS passing messages as we go from one node to the next
             if not neighbor.visited:
-                self.pass_message(cluster, neighbor, sep)
+                self.pass_message(clique, neighbor, sep)
                 self.distribute_evidence(neighbor)
     
     def pass_message(self, fromClique, toClique, sepset):
@@ -271,32 +279,33 @@ class JunctionTreeEngine(InferenceEngine):
         self.absorb(toClique, sepset, oldSepsetPotential)
     
     def project(self, clique, sepset):
-        # project marginalizes the cluster given the variables in the sepset
+        # project marginalizes the clique given the variables in the sepset
         oldSepsetPotential = copy.deepcopy(sepset.potential)
         # This list of axes orders the standard range(sepset.potential.nDims) so that it references the clique.
         cliqueAxes = sepset.clique_axes(clique)
         # This could be optimized by finding a better way index clique with all of the seqs at the same time
         # and then summing over those possible values and assigning the answer to the sepset potential.
+        sequence = SequenceGenerator(sepset.potential.dims)
         for seq in sequence:
             index = clique.potential.generate_index(seq, cliqueAxes)
-            sepset.potential[seq] = clique.potential[index].sum()
+            seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
+            sepset.potential[seqIndex] = clique.potential[index].sum()
         return oldSepsetPotential
                 
     def absorb(self, clique, sepset, oldPotential):
         # absorb divides sepset.potential (the newly affected potential) by oldPotential (the one 
-        # unaffected by project).  Then multiply the result by the cluster's potential.
+        # unaffected by project).  Then multiply the result by the clique's potential.
         # The axes of clique that correspond to the variables in sepset.
-        cliqueAxes = sepset.cliqueAxes(clique)
-        # This will set all values of the cluster potential to 0 that are not consistent with 
-        # the evidence.
-        zeroMask = oldPotential[:] == 0
+        cliqueAxes = sepset.clique_axes(clique)
+        # Wherever oldPotential == 0 we are guaranteed to have sepset.potential == 0. So to avoid
+        # divide by 0 warnings we set these places to 1.
+        oldPotential[oldPotential[:] == 0] = 1
         # Division of the new and old potentials
-        oldPotential[:] = sepset.potential[:] / oldPotential[:]
-        # Get rid of inconsistent values.
-        oldPotential[zeroMask] = 0 
+        sepset.potential[:] /= oldPotential[:]
         for seq in SequenceGenerator(sepset.potential.dims):
             index = clique.potential.generate_index(seq, cliqueAxes)
-            clique.potential[index] *= oldPotential[seq]
+            seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
+            clique.potential[index] *= sepset.potential[seqIndex]
 
     def build_join_tree (self, triangulatedGraph):
         # The Triangulated Graph is really a graph of cliques.
@@ -305,9 +314,12 @@ class JunctionTreeEngine(InferenceEngine):
         forest = [JoinTree(clique) for clique in cliques]
         sepsetHeap = PriorityQueue()
         # Create sepsets by matching each clique with every other clique.
+        # We need to generate a unique id for each sepset.
+        id = 0
         for i in range(len(cliques) - 1):
             for clique in cliques[i+1:]:
-                sepset = Sepset(cliques[i], clique)
+                sepset = Sepset(id, cliques[i], clique)
+                id += 1
                 sepsetHeap.insert(sepset)
         
         # Join n - 1 sepsets together forming (hopefully) a single tree.

@@ -1,8 +1,8 @@
 #don't have to import BayesNet, DiscreteDistribution, 
 #or numarray because it is done in ExampleModels
 import ExampleModels as EX
-from MCMCEngine import *
-from utilities import *
+from Inference import *
+from Utilities import *
 
 def test():
 	

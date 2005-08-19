@@ -2,7 +2,6 @@ import BayesNetTest
 import EnumerationTest
 import JunctionTreeTest
 import UtilitiesTest
-import SequenceGeneratorTest
 import MCMCEngineTest
 from numarray import *
 

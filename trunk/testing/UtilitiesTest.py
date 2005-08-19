@@ -1,6 +1,6 @@
-from utilities import *
 from numarray import *
-#tests the various utility functions
+from Utilities import *
+
 
 def test():
   #test myFloatEQ (which is now deprecated, use allclose from numarray

@@ -1,8 +1,5 @@
 from numarray import *
-import utilities
-
-
-
+import Utilities
 
 def updateParams (bnet, trials):
     counts = bnet.counts()

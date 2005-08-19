@@ -7,13 +7,14 @@ class Potential:
     """
     
     def __init__(self, nodes=[], table=[]):
-        assert((not nodes == []) or (not table == [])), "Atleast one input argument expected"       
-        if table == []:
+        assert((not nodes == []) or (isinstance(table, ArrayType))), "Atleast one input argument expected" 
+        self.nodes = nodes
+        if not isinstance(table, ArrayType):
             self.dims = array([node.size() for node in nodes])
             self.table = ones(self.dims, type= Float32)
         else:
             self.table = table
-            self.dims = shape(table)
+            self.dims = array(shape(table))
         self.nDims = len(self.dims)
     
     def normalize(self):
@@ -21,11 +22,10 @@ class Potential:
         if self.nDims > 1:
             seq = SequenceGenerator(self.dims[:-1])
             for s in seq:
-                cArray = self.getValue(s, axes=self.dims[:-1])
-                c = cArray.sum()
+                index = self.generate_index(s, range(self.nDims - 1))
+                c = self.table[index].sum()
                 if not c == 0:
-                    cArray /= c
-                    self.setValue(s, cArray, axes = self.dims[:-1])
+                    self.table[index] /= c
         else:
             c = self.table.sum()
             if not c == 0:
@@ -40,7 +40,7 @@ class Potential:
             s[val] = slice(index[i], index[i]+1)
         return s
     
-    """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generateIndex which generates an index for its class given which axes should be set and what the value of those axes are.
+    """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generate_index which generates an index for its class given which axes should be set and what the value of those axes are.
     """
     def __getitem__(self, index):
         return self.table[index]
@@ -51,6 +51,10 @@ class Potential:
     def __add__(self, right):
         return self.table + right.table
         
+    def __deepcopy__(self, memo):
+        copyTable = copy.deepcopy(self.table)
+        return Potential(nodes=self.nodes, table=copyTable)
+        
     
 class DiscreteDistribution(Potential):
     """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.
@@ -58,14 +62,15 @@ class DiscreteDistribution(Potential):
     
     def __init__(self, numValues):
         self.table = zeros([numValues], type=Float32)
-        self.size = numValues
+        self.dims = array(shape(self.table))
+        self.numValues = numValues
         self.nDims = 1
         
     def set_value(self, value, probability):
         self.table[value] = probability
     
-    def normalize(self):
-        self.table /= self.table.sum()
+    def size(self):
+        return self.numValues
         
         
 class ConditionalDiscreteDistribution(Potential):
@@ -73,6 +78,13 @@ class ConditionalDiscreteDistribution(Potential):
     """
 
     def __init__(self, nodes=[], table=[]):
-        Potential.__init__(self, nodes)
-        self.size = self.dims[-1]    
+        Potential.__init__(self, nodes=nodes, table=table)
+        self.numValues = self.dims[-1]    
+        
+    def size(self):
+        return self.numValues
+    
+    def __deepcopy__(self, memo):
+        copyTable = copy.deepcopy(self.table)
+        return ConditionalDiscreteDistribution(nodes=self.nodes, table=copyTable)
      

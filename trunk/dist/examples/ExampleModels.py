@@ -1,9 +1,8 @@
-from BayesNet import *
-from DiscreteDistribution import *
-from numarray import *
-from BayesNode import *
 import numarray.objects as obj
-    
+from Graph import *
+from Distribution import *
+from numarray import *
+from Node import *
     
 def water():
     
@@ -15,64 +14,60 @@ def water():
     rain = 2
     wetgrass = 3
     
-    cNode = BayesNode( 2, 0, "cloudy" )
-    sNode = BayesNode( 2, 1, "sprinkler" )
-    rNode = BayesNode( 2, 2, "rain" )
-    wNode = BayesNode( 2, 3, "wetgrass" )
+    cNode = BayesNode(0, 2, index=0, name="cloudy")
+    sNode = BayesNode(1, 2, index=1, name="sprinkler")
+    rNode = BayesNode(2, 2, index=2, name="rain")
+    wNode = BayesNode(3, 2, index=3, name="wetgrass")
 
     #cloudy
-    cNode.addChild( sNode )
-    cNode.addChild( rNode )
+    cNode.add_child(sNode)
+    cNode.add_child(rNode)
     
     #sprinkler
-    sNode.addParent( cNode )
-    sNode.addChild( wNode )
+    sNode.add_parent(cNode)
+    sNode.add_child(wNode)
     
     #rain 
-    rNode.addParent( cNode )
-    rNode.addChild( wNode )
+    rNode.add_parent(cNode)
+    rNode.add_child(wNode)
     
     #wetgrass
-    wNode.addParent( sNode )
-    wNode.addParent( rNode )
+    wNode.add_parent(sNode)
+    wNode.add_parent(rNode)
     
     nodes = [cNode, sNode, rNode, wNode]
     
     #create distributions
     #cloudy distribution
-    cDistribution = DiscreteDistribution(array([0.5, 0.5], type=Float32), cNode.nodeSize)
-    cNode.setCPT( cDistribution )
+    cDistribution = DiscreteDistribution(cNode.size())
+    cNode.set_dist(cDistribution)
     
     #sprinkler
-    dist = zeros([cNode.nodeSize,sNode.nodeSize], type=Float32)
+    dist = zeros([cNode.size(),sNode.size()], type=Float32)
     dist[0,] = 0.5
     dist[1,] = [0.9,0.1]
-    sDistribution = DiscreteDistribution(dist, sNode.nodeSize)
-    sNode.setCPT( sDistribution )
+    sDistribution = ConditionalDiscreteDistribution(nodes=[cNode, sNode], table=dist)
+    sNode.set_dist(sDistribution)
     
     #rain
-    dist = zeros([cNode.nodeSize, rNode.nodeSize], type=Float32)
+    dist = zeros([cNode.size(), rNode.size()], type=Float32)
     dist[0,] = [0.8,0.2]
     dist[1,] = [0.2,0.8]
-    rDistribution = DiscreteDistribution(dist, rNode.nodeSize)
-    rNode.setCPT( rDistribution )
+    rDistribution = ConditionalDiscreteDistribution(nodes=[cNode, rNode], table=dist)
+    rNode.set_dist(rDistribution)
     
     #wetgrass
-    dist = zeros([sNode.nodeSize, rNode.nodeSize, wNode.nodeSize], type=Float32)
+    dist = zeros([sNode.size(), rNode.size(), wNode.size()], type=Float32)
     dist[0,0,] = [1.0,0.0]
     dist[1,0,] = [0.1,0.9]
     dist[0,1,] = [0.1,0.9]
     dist[1,1,] = [0.01,0.99]
-    wgDistribution = DiscreteDistribution(dist, wNode.nodeSize)
-    wNode.setCPT( wgDistribution )
+    wgDistribution = ConditionalDiscreteDistribution(nodes=[sNode, rNode, wNode], table=dist)
+    wNode.set_dist(wgDistribution)
     
     
     #create bayes net
-    bnet = BayesNet( nodes )
+    bnet = BayesNet(nodes)
     
     return bnet
 
-def umbrellaDBN():
-    
-    
-    

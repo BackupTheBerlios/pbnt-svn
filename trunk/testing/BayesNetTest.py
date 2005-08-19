@@ -1,6 +1,6 @@
 from numarray import *
-from BayesNet import *
-from DiscreteDistribution import *
+from Graph import *
+from Distribution import *
 
 def test():
   #testing basic bayes net class implementation

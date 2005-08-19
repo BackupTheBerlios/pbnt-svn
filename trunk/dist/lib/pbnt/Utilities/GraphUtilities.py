@@ -31,7 +31,7 @@ def missingEdges( node ):
     edges = []
     for (neighbor, i) in zip( node.neighbors, range(len( node.neighbors ) - 1) ):
         for (otherNeighbor, j) in zip( node.neighbors[i:], range(len( node.neighbors[i:] )) ):
-            if not neighbor.isNeighbor( otherNeighbor ):
+            if not otherNeighbor in neighbor.neighborSet:
                 edges.append( (i,j+i+1) )
     return edges
                 
@@ -102,3 +102,73 @@ def flatIndex(indices, shape):
     return flat
 
 
+class InducedCluster:
+    
+    def __init__( self, node ):
+        self.node = node
+        self.edges = missingEdges( self.node )
+        self.nEdges = len( self.edges )
+        self.weight = self.computeWeight()
+    
+    
+    def __lt__( self, other ):
+        #less than means that it is better (pick it first)
+        if self.nEdges < other.nEdges:
+            return True
+        if self.nEdges == other.nEdges and self.weight < other.weight:
+            return True
+        
+        return False
+    
+    def recompute( self ):
+        self.edges = missingEdges( self.node )
+        self.nEdges = len( self.edges )
+        self.weight = self.computeWeight()
+    
+    def computeWeight( self ):
+        return product(array( [node.size() for node in self.node.neighbors] + [self.node.size()] ))
+    
+    
+class ClusterBinaryHeap:
+        
+        def __init__( self ):
+                self.heap = []
+        
+        def insert( self, node ):
+                iCluster = InducedCluster( node )
+                self.heap.append( iCluster )
+                self.heap.sort()
+        
+        def __iter__( self ):
+                return self
+        
+        def next( self ):
+                if len( self.heap ) == 0:
+                        raise StopIteration
+                
+                cluster = self.heap[0]
+                
+                del self.heap[0]
+                
+                #find the affected nodes
+                tmpClusterList = []
+                for node in cluster.node.neighbors:
+                        for c in self.heap:
+                                if c.node == node:
+                                        c.node.neighbors.remove( cluster.node )
+                                        tmpClusterList.append( c )
+                                        break
+                
+                #recompute cluster score of effected clusters
+                for c in tmpClusterList:
+                        c.recompute()
+                
+                #reorder now that edges have changed
+                self.heap.sort()
+        
+                return (cluster.node, cluster.edges)
+                
+        
+        def hasNext( self ):
+                return not len( heap ) == 0
+                

@@ -25,4 +25,4 @@ class InducedCluster:
         self.weight = self.computeWeight()
     
     def computeWeight( self ):
-        return product(array( [node.nodeSize for node in self.node.neighbors] + [self.node.nodeSize] ))
+        return product(array( [node.size() for node in self.node.neighbors] + [self.node.size()] ))

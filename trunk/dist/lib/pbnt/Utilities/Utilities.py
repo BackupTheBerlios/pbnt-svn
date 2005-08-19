@@ -4,8 +4,7 @@ import numarray.random_array as ra
 
 
 # Miscellaneous utility functions for use with the rest of the BayesNet Package
-
-
+    
 #Checks if a and b are equal within a fraction of error.  
 #The error is that normally introduced by the imprecision of Floating point numbers
 #now outdated, use allclose
@@ -103,8 +102,6 @@ def SequenceGenerator(iterObjs):
                     value[i] += 1
                     break
             yield value
-        value = zeros(len(iterObjs))
-        value[0] -= 1
         raise StopIteration
 
 

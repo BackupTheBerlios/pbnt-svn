@@ -1,8 +1,8 @@
 from numarray import *
-import Utilities.GraphUtilities as Utilities
-import Utilities.Utilities as Utilities
-from ClusterBinaryHeap import *
-from Clique import *
+
+from Node import *
+import GraphUtilities
+import Utilities
 
 try: set
 except NameError:
@@ -34,7 +34,7 @@ class Graph:
     def contains(self, nodes):
         return self.__nodeset_.issuperset(nodes)
     
-    def connect_nodes(node1, node2):
+    def connect_nodes(self, node1, node2):
         node1.add_neighbor(node2)
         node2.add_neighbor(node1)
    
@@ -45,22 +45,32 @@ class DAG(Graph):
     
     def __init__(self, nodes):
         Graph.__init__(self, nodes)
+        self.numNodes = len(nodes)
         self.topological_sort()
     
     def topological_sort(self):
         # Orders nodes such that no node is before any of its parents.
         sorted = list()
-        while len(nodes) > 0:
-            for node in nodes:
-                if Utilities.issuperset(sorted, node.parents):
+        sortedSet = set()
+        i = 0
+        while len(self.nodes) > 0:
+            for node in self.nodes:
+                if sortedSet.issuperset(node.parentSet):
                     sorted.append(node)
-                    nodes.remove(node)
+                    sortedSet.add(node)
+                    self.nodes.remove(node)
+                    node.index = i
+                    i += 1
                     break
-        return sorted 
+        self.nodes = sorted 
     
     def undirect(self):
         for node in self.nodes:
             node.undirect()
+    
+    def add_node(self, node):
+        Graph.add_node(self, node)
+        self.topological_sort()
 
 
 class BayesNet(DAG):
@@ -69,7 +79,6 @@ class BayesNet(DAG):
     
     def __init__(self, nodes):
         DAG.__init__(self, nodes)
-        self.numNodes = len(nodes)
                 
     def children (self, i):
         return self.nodes[i].children
@@ -78,7 +87,7 @@ class BayesNet(DAG):
         return self.nodes[i].parents
     
     def nodeSize(self, i):
-        return self.nodes[i].nodeSize
+        return self.nodes[i].size()
     
     def index_of(self, node):
         # This function is hides the actual implementation of self.nodes, keeping up an abstraction barrier
@@ -102,7 +111,7 @@ class BayesNet(DAG):
             count = counts[node.index]
             evIndex = node.evidence_index()
             values = evidence[evIndex]
-            index = count.generateIndex(evIndex, range(count.nDims))
+            index = count.generate_index(evIndex, range(count.nDims))
             count[index] += 1
 
             
@@ -121,6 +130,23 @@ class MoralGraph(Graph):
             for i in range(len(parents)):
                 for parent in parents[i:]:
                     self.connect_nodes(node.parents[i], parent)
+    
+    def deep_copy_nodes(self):
+        newNodes = list()
+        for node in self.nodes:
+            newNodes.append(copy.copy(node))
+        for (newNode, node) in zip(newNodes, self.nodes):
+            # Copy Parent List
+            for parent in node.parents:
+                newNode.add_parent(newNodes[parent.index])
+            # Copy Children List
+            for child in node.children:
+                newNode.add_child(newNodes[child.index])
+            for neighbor in node.neighbors:
+                newNode.add_neighbor(newNodes[neighbor.index])
+        return newNodes
+            
+            
 
 class MoralDBNGraph(MoralGraph):
     """ This is not finished yet.  The plan is to use this class to create a MoralGraph for use in Dynamic Bayes Nets. The primary difference between doing JunctionTreeInference on a DBN from a static bayes net is that I have to ensure that the forward interface and the backward interface are both contained in a clique of the final join tree.  This can be ensured by making sure that all of the nodes in the two interfaces are connected.  For more details and a justification please see Kevin Murphy's dissertation.
@@ -145,9 +171,10 @@ class TriangleGraph(Graph):
     
     def __init__(self, moral):
         Graph.__init__(self, moral.nodes)
-        heap = ClusterBinaryHeap()
+        heap = GraphUtilities.ClusterBinaryHeap()
         # Copy the graph so that we can destroy the copy as we insert it into heap.
-        for i, node in enumerate(copy.deepcopy(moral.nodes)):
+        # Deep copy isn't working, need to trace down bug but for now use hack.
+        for i, node in enumerate(moral.deep_copy_nodes()):
             node.index = i
             heap.insert(node)
         inducedCliques = []
@@ -191,10 +218,8 @@ class JoinTree(Graph):
     def merge(self, sepset, tree):
         cliqueX = sepset.cliqueX
         cliqueY = sepset.cliqueY                
-        cliqueX.add_neighbor(cliqueY)
-        cliqueY.add_neighbor(cliqueX)
-        cliqueX.add_sepset(sepset)
-        cliqueY.add_sepset(sepset)
+        cliqueX.add_neighbor(sepset, cliqueY)
+        cliqueY.add_neighbor(sepset, cliqueX)
         for node in tree.nodes:
             self.add_node(node)
     
@@ -218,7 +243,7 @@ class JoinTree(Graph):
             # then indexed with a slice object
             potentialMask = Potential(clique.nodes)
             potentialMask[:] = 0
-            index = potentialMask.generateIndex(value, axis)
+            index = potentialMask.generate_index(value, axis)
             potentialMask[index] = 1
             clique.potential[:] *= potentialMask[:]   
     
