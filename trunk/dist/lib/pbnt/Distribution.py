@@ -35,18 +35,30 @@ class Potential:
         # Takes in a list of indices and a list of corresponding axes.  Returns a list of slice objects that will access the 
         # equivalent position. Currently it only replaces missing axes with slice(None) objects, but eventually
         # I want to support more complex notions of i:j.
-        s = [slice(None)] * self.nDims
-        for i, val in enumerate(axis):
-            s[val] = slice(index[i], index[i]+1)
-        return s
+        #s = [slice(None)] * self.nDims
+        #for i, val in enumerate(axis):
+            #s[val] = slice(index[i], index[i]+1)
+        #return s
+        assert(len(index) == len(axis))
+        tmp = zeros(self.nDims) - 1
+        if len(axis) > 0:
+            tmp[axis] = index
+        indexStr = ""
+        for i in tmp:
+            if i == -1:
+                indexStr += ":,"
+            else:
+                indexStr += str(i)
+                indexStr += ","
+        return indexStr[:-1]
     
     """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generate_index which generates an index for its class given which axes should be set and what the value of those axes are.
     """
     def __getitem__(self, index):
-        return self.table[index]
+        return eval("self.table["+index+"]")
     
     def __setitem__(self, index, value):
-        self.table[index] = value
+        exec "self.table["+index+"]=" + repr(value)
     
     def __add__(self, right):
         return self.table + right.table

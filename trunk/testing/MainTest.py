@@ -6,12 +6,13 @@ import MCMCEngineTest
 from numarray import *
 
 print "starting tests"
+print "Enumeration"
+Esuccess = EnumerationTest.test()
 print "starting Junction Tree"
 JTsuccess = JunctionTreeTest.test()
 print "starting MCMC"
 Msuccess = MCMCEngineTest.test()
-print "Enumeration"
-Esuccess = EnumerationTest.test()
+
 print "SequenceGenerator"
 Ssuccess = SequenceGeneratorTest.test()
 print "starting Utilities"

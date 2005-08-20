@@ -40,6 +40,8 @@ def water():
     #create distributions
     #cloudy distribution
     cDistribution = DiscreteDistribution(cNode.size())
+    index = cDistribution.generate_index([],[])
+    cDistribution[index] = 0.5
     cNode.set_dist(cDistribution)
     
     #sprinkler

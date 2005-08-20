@@ -34,8 +34,8 @@ def test():
 		test0 = 0
 		print "Test 0B: FAILED\n"
 	
-	engine.add_evidence(cloudy, False)
-	engine.add_evidence(rain, True)
+	engine.change_evidence(cloudy, False)
+	engine.change_evidence(rain, True)
 	
 	Q = engine.marginal([water.nodes[wetgrass]])[0]
 	
@@ -77,9 +77,9 @@ def test():
 		print "Test 3B: FAILED\n"
 	
 	
-	engine.add_evidence(cloudy, -1)
-	engine.add_evidence(sprinkler, 0)
-	engine.add_evidence(wetgrass, 1)
+	engine.change_evidence(cloudy, -1)
+	engine.change_evidence(sprinkler, 0)
+	engine.change_evidence(wetgrass, 1)
 	
 	Q = engine.marginal([water.nodes[cloudy]])[0]
 	

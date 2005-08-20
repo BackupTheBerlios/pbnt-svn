@@ -35,7 +35,9 @@ class EnumerationEngine(InferenceEngine):
     """ Enumeration Engine uses an unoptimized fully enumerate brute force method to compute the marginal of a query.  It also uses the standard constructor, init_evidence, and change_evidence methods.  In this engine, we use a hack.  We have to check and see if the variable is unobserved.  If it is not, then we know that the probability of that value is automatically 1.  We use this hack, because in order to do it properly, a table of likelihoods that incorporates the evidence would have to be constructed, this is very costly.
     """
 
-    def marginal ( self, nodes ):
+    def marginal(self, nodes):
+        if not isinstance(nodes, types.ListType):
+            nodes = [nodes]
         # Compute the marginal for each node in nodes
         distList = list()
         for node in nodes:
@@ -44,53 +46,55 @@ class EnumerationEngine(InferenceEngine):
             Q = DiscreteDistribution(ns)
             if self.evidence[node.index] == -1:
                  for val in range(ns):
-                     prob = self.enumerate_all(node, val)
-                     Q[val] = prob
+                     prob = self.__enumerate_all(node, val)
+                     index = Q.generate_index([val], range(Q.nDims))
+                     Q[index] = prob
             else:
                 val = self.evidence[node.index]
-                Q[val] = 1
+                index = Q.generate_index(val, range(Q.nDims))
+                Q[index] = 1
             Q.normalize()
-            distList += Q
+            distList.append(Q)
         return distList
     
     """ The following methods could be functions, but I made them private methods because the are functions that should only be used internally to the class. ADVICE: James, do you think these should remain as private methods or become function calls?
     """
 
-    def __enumerate_all (self, node, value):
+    def __enumerate_all(self, node, value):
         """ We are going to iterate through all values of all non-evidence nodes. For each state of the evidence we sum the probability of that state by the probabilities of all other states.
         """
         oldValue = self.evidence[node.index]
         # Set the value of the query node to value, since we don't want to iterate over it.
         self.change_evidence(node.index, value)
         nonEvidence = where(self.evidence == -1)[0]
-        self.initialize(nonEvidence)
+        self.__initialize(nonEvidence)
         # Get the probability of the initial state of all nodes.
-        prob = self.probability(self.evidence)
-        while self.nextState(nonEvidence):
-            prob += self.probability(self.evidence)
+        prob = self.__probability(self.evidence)
+        while self.__next_state(nonEvidence):
+            prob += self.__probability(self.evidence)
         # Restore the state of evidence to its state at the beginning of enumerate_all.
         self.evidence[nonEvidence] = -1
         self.change_evidence(node.index, oldValue)
-        return Q
+        return prob
     
     def __initialize(self, nonEvidence):
         self.evidence[nonEvidence] = 0
     
     def __next_state(self, nonEvidence):
         # Generate the next possible state of the evidence.
-        numberOfNodes = len(nonEvidenceNodes)
+        numberOfNodes = len(nonEvidence)
         for index in nonEvidence:
-            if self.evidence[index] == (self.bnet.nodes(index).size() - 1):
+            if self.evidence[index] == (self.bnet.nodes[index].size() - 1):
                 # If the value of the node is its max value, then reset it.
                 if index == nonEvidence[numberOfNodes - 1]:
                     # If we iterated through to the last nonEvidence node, and didn't find a new 
                     # value, then we have visited every possible state.
                     return False
                 else:
-                    self.evidence[node] = 0
+                    self.evidence[index] = 0
                     continue
             else:
-                self.evidence[node] += 1
+                self.evidence[index] += 1
                 break
         return True
         
@@ -98,7 +102,7 @@ class EnumerationEngine(InferenceEngine):
         # Compute the probability of the state of the bayes net given the values of state.
         Q = 1
         for i in range(len(state)):
-            node = self.bnet.nodes(i)
+            node = self.bnet.nodes[i]
             dist = node.dist
             vals = state[node.evidence_index()]
             # Generate a slice object to index into dist using vals.
@@ -183,41 +187,41 @@ class JunctionTreeEngine(InferenceEngine):
         # Build a join tree and initialize it.
         self.joinTree = self.build_join_tree(triangulatedGraph)
     
-    def change_evidence(self, nodes, values):
-        """ Override parent's method because in a junction tree we have to perform an update or a retraction based on the changes to the evidence.
-        """
-        # 0 = no change, 1 = update, 2 = retract
-        isChange = 0
-        changedNodes = []
-        for (node, value) in zip(nodes, values):
-            # Make sure node has actually changed
-            if not self.evidence[node.index] == value:
-                changedNodes += node
-                # Check if node is retracted
-                if not self.evidence[node.index] == -1:
-                    isChange = 2
-                    break
-                else:
-                    isChange = 1
+    #def change_evidence(self, nodes, values):
+        #""" Override parent's method because in a junction tree we have to perform an update or a retraction based on the changes to the evidence.
+        #"""
+        ## 0 = no change, 1 = update, 2 = retract
+        #isChange = 0
+        #changedNodes = []
+        #for (node, value) in zip(nodes, values):
+            ## Make sure node has actually changed
+            #if not self.evidence[node.index] == value:
+                #changedNodes += node
+                ## Check if node is retracted
+                #if not self.evidence[node.index] == -1:
+                    #isChange = 2
+                    #break
+                #else:
+                    #isChange = 1
         
-        if isChange == 1:
-            # Just to avoid import errors
-            assert(1 == 1)
+        #if isChange == 1:
+            ## Just to avoid import errors
+            #assert(1 == 1)
             
-            # Do a global update
-            for node in changedNodes:
-                # Just to avoid import errors
-                assert(1 == 1)
+            ## Do a global update
+            #for node in changedNodes:
+                ## Just to avoid import errors
+                #assert(1 == 1)
             
-                # Update potential X and its likelihood with the new observation
-                # Then do global propagation (if only 1 cluster affected only have 
-                # to distribute evidence.
-        elif isChange == 2:
-            # Do a global retraction: Encode the new likelihoods (and do observation entry), 
-            # Reinitialize the join tree, do a Global propagation.
+                ## Update potential X and its likelihood with the new observation
+                ## Then do global propagation (if only 1 cluster affected only have 
+                ## to distribute evidence.
+        #elif isChange == 2:
+            ## Do a global retraction: Encode the new likelihoods (and do observation entry), 
+            ## Reinitialize the join tree, do a Global propagation.
             
-            # Just to avoid import errors
-            assert(1 == 1)
+            ## Just to avoid import errors
+            #assert(1 == 1)
                 
     def marginal(self, query):
         # DELETE: When change_evidence is completed delete this.
