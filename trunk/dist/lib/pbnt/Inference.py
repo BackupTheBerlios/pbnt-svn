@@ -51,7 +51,7 @@ class EnumerationEngine(InferenceEngine):
                      Q[index] = prob
             else:
                 val = self.evidence[node.index]
-                index = Q.generate_index(val, range(Q.nDims))
+                index = Q.generate_index([val], range(Q.nDims))
                 Q[index] = 1
             Q.normalize()
             distList.append(Q)
@@ -226,7 +226,7 @@ class JunctionTreeEngine(InferenceEngine):
     def marginal(self, query):
         # DELETE: When change_evidence is completed delete this.
         if not self.joinTree.initialized:
-            self.joinTree.re_initialize(self.bnet.nodes)
+            self.joinTree.reinitialize(self.bnet.nodes)
         
         self.joinTree.enter_evidence(self.evidence, self.bnet.nodes)
         self.global_propagation()
@@ -238,7 +238,8 @@ class JunctionTreeEngine(InferenceEngine):
             for value in range(node.size()):
                 potential = node.clique.potential
                 index = potential.generate_index([value], [node.clique.nodes.index(node)])
-                Q[value] = potential[index].sum()
+                distIndex = Q.generate_index([value], range(Q.nDims))
+                Q[distIndex] = potential[index].sum()
             Q.normalize()
             distributions.append(Q)
         return distributions
@@ -283,29 +284,39 @@ class JunctionTreeEngine(InferenceEngine):
         self.absorb(toClique, sepset, oldSepsetPotential)
     
     def project(self, clique, sepset):
-        # project marginalizes the clique given the variables in the sepset
+        """ We want to project from the clique to the sepset.  Essentially we are marginalizing the clique given the variables in the sepset.  We do this by iterating through the possible indices of the sepset and setting it equal to the marginalized value over the same set of axes in the clique.  This could also be done by iterating over the axes of the clique that are not in the sepset and then at each step setting the sepset to be equal to itself plus the set of values that are being selected from the clique.  Also, there is the possibility for a clique and sepset that are over the same set of nodes, in which case we just want to set the sepset.potential = clique.potential.
+        """
         oldSepsetPotential = copy.deepcopy(sepset.potential)
-        # This list of axes orders the standard range(sepset.potential.nDims) so that it references the clique.
+        # This list of axes orders the standard range(sepset.potential.nDims) 
+        # so that it references the clique.
         cliqueAxes = sepset.clique_axes(clique)
-        # This could be optimized by finding a better way index clique with all of the seqs at the same time
-        # and then summing over those possible values and assigning the answer to the sepset potential.
-        sequence = SequenceGenerator(sepset.potential.dims)
-        for seq in sequence:
-            index = clique.potential.generate_index(seq, cliqueAxes)
-            seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
-            sepset.potential[seqIndex] = clique.potential[index].sum()
+        # Check if they are over the same nodes.
+        if clique.potential.nodeSet == sepset.potential.nodeSet:
+            # [], [] is used to generate a ':' that access the whole table
+            index = clique.potential.generate_index([],[])
+            seqIndex = sepset.potential.generate_index([],[])
+            sepset.potential[seqIndex] = clique.potential[index]
+        else:
+            sequence = SequenceGenerator(sepset.potential.dims)
+            for seq in sequence:
+                index = clique.potential.generate_index(seq, cliqueAxes)
+                seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
+                sepset.potential[seqIndex] = clique.potential[index].sum()
         return oldSepsetPotential
-                
+            
     def absorb(self, clique, sepset, oldPotential):
-        # absorb divides sepset.potential (the newly affected potential) by oldPotential (the one 
-        # unaffected by project).  Then multiply the result by the clique's potential.
-        # The axes of clique that correspond to the variables in sepset.
+        """ absorb divides the sepset's potential by the old potential.  The result is multiplied by the clique's potential.  Please see c. Huang and A. Darwiche 96.  As with project, this could be optimized by finding the best set of axes to iterate over (either the sepsets, or the clique's axes that are not in the sepset).  The best solution would be to define a multiplication operation on a Potential that hides the details.
+        """
         cliqueAxes = sepset.clique_axes(clique)
         # Wherever oldPotential == 0 we are guaranteed to have sepset.potential == 0. So to avoid
         # divide by 0 warnings we set these places to 1.
-        oldPotential[oldPotential[:] == 0] = 1
+        index = oldPotential.generate_index([],[])
+        # FIXME: we are breaking our abstraction barrier.
+        indices = oldPotential[index] == 0
+        oldPotential.table[indices] = 1
         # Division of the new and old potentials
-        sepset.potential[:] /= oldPotential[:]
+        index = sepset.potential.generate_index([],[])
+        sepset.potential[index] /= oldPotential[index]
         for seq in SequenceGenerator(sepset.potential.dims):
             index = clique.potential.generate_index(seq, cliqueAxes)
             seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))

@@ -21,14 +21,15 @@ def test():
 	test0 = 1
 	
 	Q = engine.marginal([water.nodes[sprinkler]])[0]
-	
-	if allclose(Q[False], .7, atol=.0001):
+	index = Q.generate_index([False], range(Q.nDims))
+	if allclose(Q[index], .7, atol=.0001):
 		print "Test 0A: OK\n"
 	else:
 		test0 = 0
 		print "Test 0A: FAILED\n"
 	
-	if allclose(Q[True], .3, atol=.0001):
+	index = Q.generate_index([True], range(Q.nDims))
+	if allclose(Q[index], .3, atol=.0001):
 		print "Test 0B: OK\n"
 	else:
 		test0 = 0
@@ -49,13 +50,15 @@ def test():
 	#these are the values of wetgrass according to Kevin Murphys FullBNT
 	test2 = 1
 	#don't know how to handle floating point differences so use hack for now
-	if allclose(Q[False], .0550, atol=.0001):
+	index = Q.generate_index([False], range(Q.nDims))
+	if allclose(Q[index], .0550, atol=.0001):
 		print "Test 2A: OK\n"
 	else:
 		test2 = 0
 		print "Test 2A: FAILED\n"
 	
-	if allclose(Q[True], .9450, atol=.0001):
+	index = Q.generate_index([True], range(Q.nDims))
+	if allclose(Q[index], .9450, atol=.0001):
 		print "Test 2B: OK\n"
 	else:
 		test2 = 0
@@ -64,13 +67,15 @@ def test():
 	Q = engine.marginal([water.nodes[sprinkler]])[0]
 	
 	test3 = 1
-	if allclose(Q[False], .5, atol=.0001):
+	index = Q.generate_index([False], range(Q.nDims))
+	if allclose(Q[index], .5, atol=.0001):
 		print "Test 3A: OK\n"
 	else:
 		test3 = 0
 		print "Test 3A: FAILED\n"
 	
-	if allclose(Q[True], .5, atol=.0001):
+	index = Q.generate_index([True], range(Q.nDims))
+	if allclose(Q[index], .5, atol=.0001):
 		print "Test 3B: OK\n"
 	else:
 		test3 = 0
@@ -84,13 +89,15 @@ def test():
 	Q = engine.marginal([water.nodes[cloudy]])[0]
 	
 	test4 = 1
-	if allclose(Q[False], .1220, atol=.0001):
+	index = Q.generate_index([False], range(Q.nDims))
+	if allclose(Q[index], .1220, atol=.0001):
 		print "Test 4A: OK\n"
 	else:
 		test4 = 0
 		print "Test 4A: FAILED\n"
 	
-	if allclose(Q[True], .8780, atol=.0001):
+	index = Q.generate_index([True], range(Q.nDims))
+	if allclose(Q[index], .8780, atol=.0001):
 		print "Test 4B: OK\n"
 	else:
 		test4 = 0
@@ -99,13 +106,15 @@ def test():
 	Q = engine.marginal([water.nodes[rain]])[0]
 	
 	test5 = 1
-	if allclose(Q[False], 0, atol=.0001):
+	index = Q.generate_index([False], range(Q.nDims))
+	if allclose(Q[index], 0, atol=.0001):
 		print "Test 5A: OK\n"
 	else:
 		test5 = 0
 		print "Test 5A: FAILED\n"
 	
-	if allclose(Q[True], 1, atol=.0001):
+	index = Q.generate_index([True], range(Q.nDims))
+	if allclose(Q[index], 1, atol=.0001):
 		print "Test 5B: OK\n"
 	else:
 		test5 = 0

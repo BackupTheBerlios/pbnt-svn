@@ -9,6 +9,7 @@ class Potential:
     def __init__(self, nodes=[], table=[]):
         assert((not nodes == []) or (isinstance(table, ArrayType))), "Atleast one input argument expected" 
         self.nodes = nodes
+        self.nodeSet = set(nodes)
         if not isinstance(table, ArrayType):
             self.dims = array([node.size() for node in nodes])
             self.table = ones(self.dims, type= Float32)

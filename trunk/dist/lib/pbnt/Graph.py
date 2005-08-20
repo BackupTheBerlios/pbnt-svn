@@ -242,8 +242,10 @@ class JoinTree(Graph):
             # FIXME: This really should be a plain numarray object and 
             # then indexed with a slice object
             potentialMask = Potential(clique.nodes)
-            potentialMask[:] = 0
-            index = potentialMask.generate_index(value, axis)
+            allIndex = potentialMask.generate_index([],[])
+            potentialMask[allIndex] = 0
+            index = potentialMask.generate_index([value], [axis])
             potentialMask[index] = 1
-            clique.potential[:] *= potentialMask[:]   
+            cAllIndex = clique.potential.generate_index([],[])
+            clique.potential[cAllIndex] *= potentialMask[allIndex]   
     
