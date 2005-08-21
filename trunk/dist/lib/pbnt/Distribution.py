@@ -63,6 +63,11 @@ class Potential:
     
     def __add__(self, right):
         return self.table + right.table
+    
+    def __mul__(self, right):
+        """ A true multiplication of two potentials would be defined as X * Y = Z where the sets of variables z = x U y.  We would then identify the instantiations of x and y that are consistent with z and Z(z) = X(x)Y(y).  We are generally going to be multiplying sepset potentials by clique potentials where the variables of a setpset potential are a subset of the variables of the clique.  Therefore we are going to assume in this operation that right's variables are a subset of self's.
+        """
+        #FIXME: Needs to be implemented
         
     def __deepcopy__(self, memo):
         copyTable = copy.deepcopy(self.table)
