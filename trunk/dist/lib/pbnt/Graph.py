@@ -154,17 +154,13 @@ class MoralDBNGraph(MoralGraph):
     
     def __init__(self, DBN):
         MoralGraph.__init__(DBN)
-        fInterfaceNodes = self.selectForwardInterface()
-        bInterfaceNodes = self.selectBackInterface()
-        
-        #make sure all nodes within the interface are connected
+        # Make sure all nodes within the interface are connected
         for interface in [fInterfaceNodes, bInterfaceNodes]:
             #for each interface, connect all nodes within the interface
-            for i in range(len(interface)):
-                for node in interface[i+1:]:
-                    self.connect_nodes(interface[i], node)
-                    
-
+            for node in interface:
+                # OPTIMIZE: we could figure out exactly which nodes to add
+                node.neighborSet.add(interface)
+        
 class TriangleGraph(Graph):
     """ TriangleGraph is constructed from the MoralGraph.  It is the triangulated graph.  It is constructed by identifying clusters of nodes according to a given heuristic.  There are many heuristics that can be used, and in this implementation the heuristic is implemented in the ClusterBinaryHeap and can therefore be changed independent of this class.  The heap acts as a priority queue.  After the heap has been created, we remove nodes from the heap and use the information to create Cliques.  The Cliques are then added to the graph if they are not contained in a previous Clique.  TODO: Move addClique to this class from GraphUtilities.  Reimplement ClusterBinaryHeap as a built in python priority queue.
     """
