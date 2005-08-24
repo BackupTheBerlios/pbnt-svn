@@ -12,8 +12,7 @@ class Node:
     """
     def __init__(self, id, index=-1, name="anonymous"):
         # This defines a list of edges to other nodes in the graph.
-        self.neighbors = []
-        self.neighborSet = set()
+        self.neighbors = set()
         self.visited = False
         self.id = id
         # The index of this node within the list of nodes in the overall graph.
@@ -53,45 +52,31 @@ class DirectedNode(Node):
     """
     def __init__(self, id, index=-1, name="anonymous"):
         Node.__init__(self, id, index, name)
-        self.parents = []
-        self.parentSet = set()
-        self.children = []
-        self.childrenSet = set()
-        # The following is used commonly to index into the evidence.
-        self.parentIndex = []
+        self.parents = set()
+        self.children = set()
     
     def add_parent(self, parent):
         # Same as add_neighbor, but for parents of the node.
-        if (not parent in self.parentSet) and (not self == parent):
-            self.parents.append(parent)
-            self.parents.sort()
-            index = self.parents.index(parent)
-            self.parentIndex.insert(index, parent.index)
-            self.parentSet.add(parent)
+        if (not parent in self.parents) and (not self == parent):
+            self.parents.add(parent)
     
     def add_child(self, child):
         # Same as add_parent but for children.
-        if (not child in self.childrenSet) and (not self == child):
-            self.children.append(child)
-            self.children.sort()
-            self.childrenSet.add(child)
+        if (not child in self.children) and (not self == child):
+            self.children.add(child)
     
     def remove_parent(self, parent):
         # Same as remove_neighbor, but for parents.
         self.parents.remove(parent)
-        self.parentIndex.remove(parent.index)
-        self.parentSet.remove(parent)
-        
+       
     def remove_child(self, child):
         # Same as remove_parent
         self.children.remove(child)
-        self.childrenSet.remove(child)
-    
+        
     def undirect(self):
         """ This drops the direction of self's edges.  This doesn't exactly destroy it since self still maintains lists of parents and children.  We could think of this as allowing us to treat self as both directed and undirected simply allowing it to be casted as one at one moment and the other at another moment.
         """
-        self.neighbors = self.parents + self.children
-        self.neighborSet = set(self.neighbors)
+        self.neighbors = self.parents.union(self.children)
 
 class BayesNode(DirectedNode):
     """ BayesNode is a child class of DirectedNode.  Essentially it is a DirectedNode with some added fields that make it more appropriate for a Bayesian Network, such as a field for a distribution and arrays of indices. The arrays are indices of its parents and children; that is the index of its neighbor within the overall bayes net.
@@ -103,9 +88,6 @@ class BayesNode(DirectedNode):
         # value is the value that this node currently holds.  -1 is currently the "Blank" value, this feels dangerous.
         self.value = -1
         self.clique = -1
-        
-    def evidence_index(self):
-        return self.parentIndex + [self.index]
         
     def set_dist(self, dist):
         self.dist = dist
@@ -130,35 +112,21 @@ class Clique(Node):
         for node in nodes:
             name += node.name
         Node.__init__(self, name)
-        self.nodes = nodes
-        self.nodeSet = set(nodes)
-        # Nodes must be ordered in the same relative order that they are in the actual network, so that they are in topo order.
-        self.nodes.sort()
+        self.nodes = set(nodes)
         # Between every Clique node is a sepset, so this should be as long as 
-        self.sepsets = []
+        self.sepsets = set()
         # A Potential is like a conditional distribution, but the probabilities 
         # are not explicitly conditioned on other probabilities.
         self.potential = Potential(self.nodes)
     
     def add_neighbor(self, sepset, node):
         Node.add_neighbor(self, node)
-        self.sepsets.append(sepset)
+        self.sepsets.add(sepset)
                 
     def init_potential(self, node):
-        """ We can either iterate through all of the dimensions of node, or all of the dimensions of self.potential that are not related to node.  Which ever is fewer will be faster. 
+        """ We want to satisfy the formula self.potential = self.potential*P(node|node.parents).
         """
-        parentIndices = [self.nodes.index(parent) for parent in node.parents + [node]]
-        nNodeDims = len(parentIndices)
-        # axes is a list of the index of each of the nodes relative to the clique, 
-        # we will use this to know how to permute the the indices into the node, 
-        # so that they are equivalent to the clique's own potential.
-        axes = parentIndices
-        # An iterator that iterates through all possible indices of node.
-        sequence = Utilities.SequenceGenerator(node.dist.dims)
-        for seq in sequence:
-            index = self.potential.generate_index(seq, axes)
-            seqIndex = node.dist.generate_index(seq, range(node.dist.nDims))
-            self.potential[index] *= node.dist[seqIndex]    
+        self.potential *= node.dist 
                 
     def reinit_potential( self ):
         self.potential = Potential(self.nodes)

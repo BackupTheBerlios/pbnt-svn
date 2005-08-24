@@ -14,25 +14,21 @@ class Graph:
     """
     
     def __init__(self, nodes):
-        self.nodes = nodes
-        # Only used for internal membership tests, so make it private
-        self.__nodeset_ = set(nodes)
+        self.nodes = set(nodes)
         
     def add_node(self, node):
         # Check if it is a list of nodes or a single node (arrays are also type=ListType).
         if isinstance(node, types.ListType):
             for n in node:
-                self.nodes.append(n)
-                self.__nodeset_.add(n)
+                self.nodes.add(n)
         else:
-            self.nodes.append(node)
-            self.__nodeset_.add(node)
+            self.nodes.add(node)
         
     def member_of(self, node):
-        return node in self.__nodeset_
+        return node in self.nodes
     
     def contains(self, nodes):
-        return self.__nodeset_.issuperset(nodes)
+        return self.nodes.issuperset(nodes)
     
     def connect_nodes(self, node1, node2):
         node1.add_neighbor(node2)
@@ -50,14 +46,16 @@ class DAG(Graph):
     
     def topological_sort(self):
         # Orders nodes such that no node is before any of its parents.
-        sorted = list()
-        sortedSet = set()
+        sorted = set()
         i = 0
+        totIter = len(self.nodes)
         while len(self.nodes) > 0:
+            #FIXME: Use exception here instead of assertion
+            assert(totIter >= 0), "Graph Is No Longer Acyclic"
+            totIter -= 1
             for node in self.nodes:
-                if sortedSet.issuperset(node.parentSet):
-                    sorted.append(node)
-                    sortedSet.add(node)
+                if sorted.issuperset(node.parents):
+                    sorted.add(node)
                     self.nodes.remove(node)
                     node.index = i
                     i += 1
@@ -70,6 +68,7 @@ class DAG(Graph):
     
     def add_node(self, node):
         Graph.add_node(self, node)
+        #FIXME: Could just insert in place rather than resorting entire list
         self.topological_sort()
 
 
@@ -79,19 +78,6 @@ class BayesNet(DAG):
     
     def __init__(self, nodes):
         DAG.__init__(self, nodes)
-                
-    def children (self, i):
-        return self.nodes[i].children
-
-    def parents (self, i):
-        return self.nodes[i].parents
-    
-    def nodeSize(self, i):
-        return self.nodes[i].size()
-    
-    def index_of(self, node):
-        # This function is hides the actual implementation of self.nodes, keeping up an abstraction barrier
-        return self.nodes.index(node)
     
     def counts(self):
         # Return an array of matrices that can be used as a way to build a set of counts
@@ -107,6 +93,7 @@ class BayesNet(DAG):
             node.dist.normalize()
     
     def update_counts(self, counts, evidence):
+        # Update the set of counts with the evidence
         for node in self.nodes:
             count = counts[node.index]
             evIndex = node.evidence_index()

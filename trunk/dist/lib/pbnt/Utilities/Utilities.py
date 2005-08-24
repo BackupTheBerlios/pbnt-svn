@@ -88,7 +88,7 @@ def updateCounts(nodes, counts, data):
         fIndex = flatIndex(indices, count.shape)
         count.flat[fIndex] += 1
 
-def SequenceGenerator(iterObjs):
+def sequence_generator(iterObjs):
     assert(isinstance(iterObjs, ArrayType))
     stop = iterObjs - 1
     value = zeros(len(iterObjs))

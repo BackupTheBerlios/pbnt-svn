@@ -1,21 +1,21 @@
 from numarray import *
 import GraphUtilities
+import Utilities
 
 
 class Potential:
     """ Potentials are very similar to a conditional distribution in that they specify the probability over a set of nodes. The difference is that potentials are not thought of as being centered on the value a one node given other nodes. Therefore, a conditional distribution could be thought of as a special case of a potential.
     """
     
-    def __init__(self, nodes=[], table=[]):
-        assert((not nodes == []) or (isinstance(table, ArrayType))), "Atleast one input argument expected" 
+    def __init__(self, nodes, table=[], default=1):
         self.nodes = nodes
-        self.nodeSet = set(nodes)
+        self.__nodeSet_ = set(nodes)
+        self.dims = array([node.size() for node in nodes])
         if not isinstance(table, ArrayType):
-            self.dims = array([node.size() for node in nodes])
-            self.table = ones(self.dims, type= Float32)
+            self.table = zeros(self.dims, type= Float32) + default
         else:
             self.table = table
-            self.dims = array(shape(table))
+            assert(alltrue(shape(table) == self.dims)), "Potential Init Error: Node sizes do not agree with input table"
         self.nDims = len(self.dims)
     
     def normalize(self):
@@ -51,7 +51,21 @@ class Potential:
             else:
                 indexStr += str(i)
                 indexStr += ","
-        return indexStr[:-1]
+        return indexStr[:-1]     
+    
+    def transpose(self, nodes):
+        #FIXME: would like the assertion to be stronger, would like set(nodes) == self.__nodeSet_
+        assert(len(nodes) == self.nDims), "Potential Error: Cannot take transpose with a different set of nodes"
+        axes = [self.nodes.index(node) for node in nodes]
+        self.table.transpose(axis=axes)
+        self.nodes = nodes
+        self.__nodeSet_ = set(nodes)
+    
+    def transpose_copy(self, nodes):
+        #FIXME: would like the assertion to be stronger, would like set(nodes) == self.__nodeSet_
+        assert(len(nodes) == self.nDims), "Potential Error: Cannot take transpose with a different set of nodes"
+        axes = [self.nodes.index(node) for node in nodes]
+        return transpose(table, axis=axes)
     
     """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generate_index which generates an index for its class given which axes should be set and what the value of those axes are.
     """
@@ -62,17 +76,66 @@ class Potential:
         exec "self.table["+index+"]=" + repr(value)
     
     def __add__(self, right):
-        return self.table + right.table
+        """ Pointwise addition of elements in self and right.  Assumes that self and right are defined over the same nodes.
+        """
+        assert(self.__nodeSet_ == right.__nodeSet_), \
+              "Attempted to add two Potentials with different sets of nodes"
+        new = copy.deepcopy(self)
+        right.transpose(new.nodes)
+        new.table += right.table
+        return new
     
+    def __iadd__(self, right):
+        """ Pointwise addition of elements in self and right.  Assumes that self and right are defined over the same nodes.  This operator is called for in place addition +=.
+        """
+        assert(self.__nodeSet_ == right.__nodeSet_), \
+              "Attempted to add two Potentials with different sets of nodes"
+        right.transpose(self.nodes)
+        self.table += right.table
+        return self
+        
     def __mul__(self, right):
         """ A true multiplication of two potentials would be defined as X * Y = Z where the sets of variables z = x U y.  We would then identify the instantiations of x and y that are consistent with z and Z(z) = X(x)Y(y).  We are generally going to be multiplying sepset potentials by clique potentials where the variables of a setpset potential are a subset of the variables of the clique.  Therefore we are going to assume in this operation that right's variables are a subset of self's.
         """
-        #FIXME: Needs to be implemented
-        
+        # right should only be a DiscreteDistribution or a ContinuousDistribution if it is a subset and it should be __imul__
+        assert(not isinstance(right, DiscreteDistribution) and not isinstance(right, ConditionalDiscreteDistribution)), \
+              "Attempt to Multiply Potential with incompatible type: Discrete or Conditional"
+        nodeSet = self.__nodeSet_.union(right.__nodeSet_)
+        potential = Potential(list(nodeSet))
+        selfValues = [potential.nodes.index(node) for node in self.nodes]
+        rightValues = [potential.nodes.index(node) for node in right.nodes]
+        # Store the following lists so we don't have to recompute them on every iteration
+        potAxes = range(potential.nDims)
+        selfAxes = range(self.nDims)
+        rightAxes = range(right.nDims)
+        #OPTIMIZE: Should be able to do this without blindly iterating through dimensions.
+        for seq in Utilities.sequence_generator(potential.dims):
+            #OPTIMIZE: Could access the table directly, but would break down our abstraction
+            potIndex = potential.generate_index(seq, potAxes)
+            selfIndex = self.generate_index(seq[selfValues], selfAxes)
+            rightIndex = right.generate_index(seq[rightValues], rightAxes)
+            potential[potIndex] = self[selfIndex] * right[rightIndex]
+        return potential
+    
+    def __imul__(self, right):
+        """ This is the same operation as __mul__ except that if right.nodes is a subset of self.nodes, we do the multiplication in place, because there is no reason to make a copy, which wastes time and space.
+        """
+        #OPTIMIZE: There must be a way to do this without iterating over every value of table
+        if self.__nodeSet_.issuperset(right.__nodeSet_):
+            selfAxes = [self.nodes.index(node) for node in right.nodes]
+            rightAxes = range(right.nDims)
+            for seq in Utilities.sequence_generator(right.dims):
+                selfIndex = self.generate_index(seq, selfAxes)
+                #OPTIMIZE: Could index right.table directly, but this upholds our abstraction barrier
+                rightIndex = right.generate_index(seq, rightAxes)
+                self[selfIndex] *= right[rightIndex]
+        else:
+            self = self.__mul__(right)
+        return self
+                   
     def __deepcopy__(self, memo):
         copyTable = copy.deepcopy(self.table)
-        return Potential(nodes=self.nodes, table=copyTable)
-        
+        return Potential(nodes=self.nodes, table=copyTable)        
     
 class DiscreteDistribution(Potential):
     """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.

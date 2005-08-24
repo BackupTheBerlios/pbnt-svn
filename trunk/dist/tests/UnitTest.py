@@ -10,6 +10,7 @@ import ExampleModels as EX
 """ This file is a set of unit tests.  They are all written as separate functions that return true or false.
 """
 
+########################### Test: Moral DBN #################################
 def moral_dbn_interface_connected():
     dbn = EX.basic_dbn()
     moral = MoralDBNGraph(dbn)
@@ -55,4 +56,52 @@ def moral_dbn_interface_connected():
     else:
         print "Test 4: FAILED"
     return (test1 and test2 and test3 and test4)
+       
+
+########################### Test: topological sort #################################
+def test_topo_sort():
+    a = DirectedNode(1)
+    b = DirectedNode(2)
+    c = DirectedNode(3)
+    d = DirectedNode(4)
+    e = DirectedNode(5)
+    
+    a.add_child(b)
+    a.add_child(c)
+    b.add_parent(a)
+    c.add_parent(a)
+    d.add_child(b)
+    b.add_parent(d)
+    e.add_child(a)
+    a.add_parent(e)
+    
+    l = [a,b,c,d,e]
+    dag = DAG(l)
+    if a.index > e.index and b.index > a.index and b.index > d.index and c.index > a.index:
+        test1 = 1
+        print "Test1: OK"
+    else:
+        test1 = 0
+        print "Test1: FAILED"
+    test2 = 1
+    for i in l:
+        if i.index == -1:
+            test2 = 0
+    if test2:
+        print "Test2: OK"
+    else:
+        print "Test2: FAILED"
+    # Make graph cyclic
+    e.add_parent(a)
+    a.add_child(e)
+    try:
+        dag = DAG(l)
+        test3 = 0
+        print "Test3: FAILED"
+    except AssertionError:
+        test3 = 1
+        print "Test3: OK"
+    return alltrue(array([test1,test2,test3]))
         
+    
+    
