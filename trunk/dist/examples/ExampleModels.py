@@ -39,7 +39,7 @@ def water():
     
     #create distributions
     #cloudy distribution
-    cDistribution = DiscreteDistribution(cNode.size())
+    cDistribution = DiscreteDistribution(cNode)
     index = cDistribution.generate_index([],[])
     cDistribution[index] = 0.5
     cNode.set_dist(cDistribution)

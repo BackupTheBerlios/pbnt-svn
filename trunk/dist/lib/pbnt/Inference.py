@@ -43,7 +43,7 @@ class EnumerationEngine(InferenceEngine):
         for node in nodes:
             ns = node.size()
             # Create the return distribution.
-            Q = DiscreteDistribution(ns)
+            Q = DiscreteDistribution(node)
             if self.evidence[node.index] == -1:
                  for val in range(ns):
                      prob = self.__enumerate_all(node, val)
@@ -116,7 +116,7 @@ class MCMCEngine( InferenceEngine ):
         #N is thenumber of samples
         def marginal ( self, X, N ):
             flipped = 0
-            Nx = [DiscreteDistribution(x.size()) for x in X]
+            Nx = [DiscreteDistribution(x) for x in X]
             queryIndex = array([x.index for x in X])
             state = self.evidence.copy()
             nonEvMask = state == -1
@@ -234,7 +234,7 @@ class JunctionTreeEngine(InferenceEngine):
         
         distributions = []
         for node in query:
-            Q = DiscreteDistribution(node.size())
+            Q = DiscreteDistribution(node)
             for value in range(node.size()):
                 potential = node.clique.potential
                 index = potential.generate_index([value], [node.clique.nodes.index(node)])

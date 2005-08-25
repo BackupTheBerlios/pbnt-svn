@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Builtin Python Libraries
 import unittest
 # Major Packages
@@ -49,7 +50,9 @@ class TopoSortTestCase(unittest.TestCase):
         self.nodes[4].add_parent(self.nodes[0])
         self.assertRaises(AssertionError, Graph.DAG, self.nodes)
 
-def suite():
-    return unittest.makeSuite(TopoSortTestCase, 'test')
-#runner = unittest.TextTestRunner()
-#runner.run(suite)
+suite = unittest.makeSuite(TopoSortTestCase, 'test')
+runner = unittest.TextTestRunner()
+runner.run(suite)
+
+if __name__ == "__main__":
+    unittest.main()

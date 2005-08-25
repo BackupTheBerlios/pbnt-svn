@@ -32,19 +32,21 @@ class Potential:
             if not c == 0:
                 self.table /= c
     
+    def generate_index_node(self, index, nodes):
+        """ Generates a list of axes that correspond to nodes, then calls generate_index with the newly generated list of axes.
+        """
+        assert(self.__nodeSet_.issuperset(nodes))
+        axes = [self.nodes.index(node) for node in nodes]
+        return self.generate_index(index, axes)        
+    
     def generate_index(self, index, axis):
-        # Takes in a list of indices and a list of corresponding axes.  Returns a list of slice objects that will access the 
-        # equivalent position. Currently it only replaces missing axes with slice(None) objects, but eventually
-        # I want to support more complex notions of i:j.
-        #s = [slice(None)] * self.nDims
-        #for i, val in enumerate(axis):
-            #s[val] = slice(index[i], index[i]+1)
-        #return s
+        """ This function works hand in hand with __getitem__.  It takes in a list of indices and a list of axes and generates an index in a format appropriate for __getitem__, which is currently generating strings which are then executed using eval.
+        """
         assert(len(index) == len(axis))
         tmp = zeros(self.nDims) - 1
         if len(axis) > 0:
             tmp[axis] = index
-        indexStr = ""
+            indexStr = ""
         for i in tmp:
             if i == -1:
                 indexStr += ":,"
@@ -69,6 +71,9 @@ class Potential:
     
     """ The following are the overloaded operators of this class. I want these distributions to be treated like tables, even if the underlying representation is not an array or table.  By overloading these, I can treat these classes as if they are just tables with a couple of extra methods specific to the distribution class I am dealing with.  There are two advantages in particular.  First, if I need to improve performance, these classes could be implemented in C by inheriting from the numarray array object and adding the extra methods needed to deal with these objects as distributions.  Second, if I decide to change the underlying array class from numarray to numeric or to something totally different, it wont affect anything else, because everything else with be abstracted away.  This is further guaranteed by generate_index which generates an index for its class given which axes should be set and what the value of those axes are.
     """
+    def __eq__(self, other):
+        return self.__nodeSet_ == other.__nodeSet_
+    
     def __getitem__(self, index):
         return eval("self.table["+index+"]")
     
@@ -78,20 +83,26 @@ class Potential:
     def __add__(self, right):
         """ Pointwise addition of elements in self and right.  Assumes that self and right are defined over the same nodes.
         """
-        assert(self.__nodeSet_ == right.__nodeSet_), \
-              "Attempted to add two Potentials with different sets of nodes"
         new = copy.deepcopy(self)
-        right.transpose(new.nodes)
-        new.table += right.table
-        return new
-    
+        if isinstance(right, (int, float, complex, long)):
+            new.table += right
+        else:
+            assert(self.__nodeSet_ == right.__nodeSet_), \
+                  "Attempted to add two Potentials with different sets of nodes"
+            right.transpose(new.nodes)
+            new.table += right.table
+        return new            
+        
     def __iadd__(self, right):
         """ Pointwise addition of elements in self and right.  Assumes that self and right are defined over the same nodes.  This operator is called for in place addition +=.
         """
-        assert(self.__nodeSet_ == right.__nodeSet_), \
-              "Attempted to add two Potentials with different sets of nodes"
-        right.transpose(self.nodes)
-        self.table += right.table
+        if isinstance(right, (int, float, complex, long)):
+            self.table += right
+        else:
+            assert(self.__nodeSet_ == right.__nodeSet_), \
+                  "Attempted to add two Potentials with different sets of nodes"
+            right.transpose(self.nodes)
+            self.table += right.table
         return self
         
     def __mul__(self, right):
@@ -102,35 +113,43 @@ class Potential:
               "Attempt to Multiply Potential with incompatible type: Discrete or Conditional"
         nodeSet = self.__nodeSet_.union(right.__nodeSet_)
         potential = Potential(list(nodeSet))
-        selfValues = [potential.nodes.index(node) for node in self.nodes]
-        rightValues = [potential.nodes.index(node) for node in right.nodes]
-        # Store the following lists so we don't have to recompute them on every iteration
-        potAxes = range(potential.nDims)
-        selfAxes = range(self.nDims)
-        rightAxes = range(right.nDims)
-        #OPTIMIZE: Should be able to do this without blindly iterating through dimensions.
-        for seq in Utilities.sequence_generator(potential.dims):
-            #OPTIMIZE: Could access the table directly, but would break down our abstraction
-            potIndex = potential.generate_index(seq, potAxes)
-            selfIndex = self.generate_index(seq[selfValues], selfAxes)
-            rightIndex = right.generate_index(seq[rightValues], rightAxes)
-            potential[potIndex] = self[selfIndex] * right[rightIndex]
+        if isinstance(right, (int, float, complex, long)):
+            potential.table *= right
+        else:
+            selfValues = [potential.nodes.index(node) for node in self.nodes]
+            rightValues = [potential.nodes.index(node) for node in right.nodes]
+            # Store the following lists so we don't have to recompute them on every iteration
+            potAxes = range(potential.nDims)
+            selfAxes = range(self.nDims)
+            rightAxes = range(right.nDims)
+            #OPTIMIZE: Should be able to do this without blindly iterating through dimensions.
+            for seq in Utilities.sequence_generator(potential.dims):
+                #OPTIMIZE: Could access the table directly, but would break down our abstraction
+                potIndex = potential.generate_index(seq, potAxes)
+                selfIndex = self.generate_index(seq[selfValues], selfAxes)
+                rightIndex = right.generate_index(seq[rightValues], rightAxes)
+                potential[potIndex] = self[selfIndex] * right[rightIndex]
         return potential
     
     def __imul__(self, right):
         """ This is the same operation as __mul__ except that if right.nodes is a subset of self.nodes, we do the multiplication in place, because there is no reason to make a copy, which wastes time and space.
         """
-        #OPTIMIZE: There must be a way to do this without iterating over every value of table
-        if self.__nodeSet_.issuperset(right.__nodeSet_):
-            selfAxes = [self.nodes.index(node) for node in right.nodes]
-            rightAxes = range(right.nDims)
-            for seq in Utilities.sequence_generator(right.dims):
-                selfIndex = self.generate_index(seq, selfAxes)
-                #OPTIMIZE: Could index right.table directly, but this upholds our abstraction barrier
-                rightIndex = right.generate_index(seq, rightAxes)
-                self[selfIndex] *= right[rightIndex]
+        if isinstance(right, (int, float, complex, long)):
+            self.table *= right
         else:
-            self = self.__mul__(right)
+            #OPTIMIZE: There must be a way to do this without iterating over every value of table
+            if self.__nodeSet_.issuperset(right.__nodeSet_):
+                selfAxes = [self.nodes.index(node) for node in right.nodes]
+                rightAxes = range(right.nDims)
+                for seq in Utilities.sequence_generator(right.dims):
+                    selfIndex = self.generate_index(seq, selfAxes)
+                    #OPTIMIZE: Could index right.table directly, but this upholds our abstraction barrier
+                    rightIndex = right.generate_index(seq, rightAxes)
+                    self[selfIndex] *= right[rightIndex]
+            else:
+                """ If potential will be over a different set of variables after multiplication, might as well use full __mul__ version, which copies.
+                """
+                self = self.__mul__(right)
         return self
                    
     def __deepcopy__(self, memo):
@@ -141,18 +160,20 @@ class DiscreteDistribution(Potential):
     """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.
     """
     
-    def __init__(self, numValues):
-        self.table = zeros([numValues], type=Float32)
+    def __init__(self, node):
+        self.node = node
+        self.table = zeros([node.size()], type=Float32)
         self.dims = array(shape(self.table))
-        self.numValues = numValues
         self.nDims = 1
         
     def set_value(self, value, probability):
         self.table[value] = probability
     
     def size(self):
-        return self.numValues
-        
+        return self.node.size()
+    
+    def __eq__(self, other):
+        self.node == other.node
         
 class ConditionalDiscreteDistribution(Potential):
     """ This is very similar to a potential, except that ConditionalDiscreteDistributions are focused on a single variable and its value conditioned on other variables.
@@ -160,10 +181,14 @@ class ConditionalDiscreteDistribution(Potential):
 
     def __init__(self, nodes=[], table=[]):
         Potential.__init__(self, nodes=nodes, table=table)
-        self.numValues = self.dims[-1]    
+        self.node = nodes[-1]
         
     def size(self):
-        return self.numValues
+        return self.node.size()
+    
+    def __eq__(self, other):
+        return isinstance(other, ConditionalDiscreteDistribution) and \
+               Potential.__eq__(self, other) and self.node == other.node
     
     def __deepcopy__(self, memo):
         copyTable = copy.deepcopy(self.table)
