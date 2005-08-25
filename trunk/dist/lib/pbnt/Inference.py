@@ -165,10 +165,7 @@ class MCMCEngine( InferenceEngine ):
                                 MBval[value] *= child.CPT.getValue(indices)
                 
                 state[node.index] = oldVal
-                #FIX THIS: better representation of distributions
-                #normalize MBval
-                MBval /= MBval.sum()
-                
+                MBval.normalize()                
                 val = util.sample(MBval)
                 return val
 
@@ -284,24 +281,11 @@ class JunctionTreeEngine(InferenceEngine):
         self.absorb(toClique, sepset, oldSepsetPotential)
     
     def project(self, clique, sepset):
-        """ We want to project from the clique to the sepset.  Essentially we are marginalizing the clique given the variables in the sepset.  We do this by iterating through the possible indices of the sepset and setting it equal to the marginalized value over the same set of axes in the clique.  This could also be done by iterating over the axes of the clique that are not in the sepset and then at each step setting the sepset to be equal to itself plus the set of values that are being selected from the clique.  Also, there is the possibility for a clique and sepset that are over the same set of nodes, in which case we just want to set the sepset.potential = clique.potential.
+        """ We want to project from the clique to the sepset.  We do this by marginalizing the clique potential into the sepset potential.
         """
         oldSepsetPotential = copy.deepcopy(sepset.potential)
-        # This list of axes orders the standard range(sepset.potential.nDims) 
-        # so that it references the clique.
-        cliqueAxes = sepset.clique_axes(clique)
-        # Check if they are over the same nodes.
-        if clique.potential.nodeSet == sepset.potential.nodeSet:
-            # [], [] is used to generate a ':' that access the whole table
-            index = clique.potential.generate_index([],[])
-            seqIndex = sepset.potential.generate_index([],[])
-            sepset.potential[seqIndex] = clique.potential[index]
-        else:
-            sequence = SequenceGenerator(sepset.potential.dims)
-            for seq in sequence:
-                index = clique.potential.generate_index(seq, cliqueAxes)
-                seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
-                sepset.potential[seqIndex] = clique.potential[index].sum()
+        # OPTIMIZE: Write a new function that does this in place.
+        sepset.potential = clique.potential.marginalize(sepset.potential)
         return oldSepsetPotential
             
     def absorb(self, clique, sepset, oldPotential):

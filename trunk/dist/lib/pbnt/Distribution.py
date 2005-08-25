@@ -17,6 +17,19 @@ class Potential:
             self.table = table
             assert(alltrue(shape(table) == self.dims)), "Potential Init Error: Node sizes do not agree with input table"
         self.nDims = len(self.dims)
+        
+    def marginalize(self, other):
+        """ Return a new potential that is the marginalization of this potential given other.  This identifies the instantiations of self (s1,s2,...,sn) that are consistent with other and sum self(s1) + self(s2) + ... + self(sn). 
+        """
+        new = copy.deepcopy(other)
+        intersect = self.__nodeSet_.intersection(new.__nodeSet_)
+        newAxes = range(new.nDims)
+        sequence = SequenceGenerator(other.dims)
+        for seq in sequence:
+            index = self.generate_index_node(seq, intersect)
+            newIndex = new.generate_index(seq, newAxes)
+            new[newIndex] = self[index].sum()
+        return new
     
     def normalize(self):
         # Make sure that the last dimension adds to 1 along all other values.
@@ -151,7 +164,33 @@ class Potential:
                 """
                 self = self.__mul__(right)
         return self
-                   
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __div__(self, other):
+        """ ASSUMPTION: This is only defined for potentials over the same set of nodes.  It is a pointwise division of each element within the potential.
+        """
+        new = copy.deepcopy(self)
+        if (isinstance(other, (int, float, complex, long))):
+            new.table /= other
+        else:
+            assert(self.__nodeSet_ == other.__nodeSet_)        
+            new.transpose(other.nodes)
+            new.table /= other.table
+        return new
+    
+    def __idiv__(self, other):
+        """ Same as div, but operates on self in place.
+        """
+        if (isinstance(other, (int, float, complex, long))):
+            self.table /= other
+        else:
+            assert(self.__nodeSet_ == other.__nodeSet_)
+            other.transpose(self.nodes)
+            self.table /= other.table
+        return self
+    
     def __deepcopy__(self, memo):
         copyTable = copy.deepcopy(self.table)
         return Potential(nodes=self.nodes, table=copyTable)        

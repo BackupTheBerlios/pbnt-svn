@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # Builtin Python Libraries
+import sys
 import unittest
 # Major Packages
 import numarray
+# Assume we are in dist/tests directory
+sys.path.append('../lib')
 # Library specific modules
-import Graph
-import Node
+from pbnt import Distribution
+from pbnt import Node
 
 class TopoSortTestCase(unittest.TestCase):
     def setUp(self):
