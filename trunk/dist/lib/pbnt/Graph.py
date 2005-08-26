@@ -3,6 +3,7 @@ from numarray import *
 from Node import *
 import GraphUtilities
 import Utilities
+import GraphExceptions
 
 try: set
 except NameError:
@@ -50,8 +51,8 @@ class DAG(Graph):
         i = 0
         totIter = len(self.nodes)
         while len(self.nodes) > 0:
-            #FIXME: Use exception here instead of assertion
-            assert(totIter >= 0), "Graph Is No Longer Acyclic"
+            if totIter <= 0:
+                raise BadGraphStructure("Graph must be acyclic")
             totIter -= 1
             for node in self.nodes:
                 if sorted.issuperset(node.parents):
@@ -231,4 +232,17 @@ class JoinTree(Graph):
             potentialMask[index] = 1
             cAllIndex = clique.potential.generate_index([],[])
             clique.potential[cAllIndex] *= potentialMask[allIndex]   
-    
+
+class BadGraphStructure:
+    """ An exception class used to denote a graph with a malformed structure.  It is currently used to throw an error when a DAG is cyclic.
+    """
+    def __init__(self, txt):
+        self.txt = txt
+        
+    def __repr__(self):
+        return txt
+        
+class BadTreeStructure(BadGraphStructure):
+    """ An exception class used to indicate a bad junction tree structure.  It is currently used in Inference to signify when a junction tree is really a forest of trees, which is not an error, but it is not currently supported by this package therefore it is.
+    """
+    pass

@@ -14,10 +14,10 @@ def water():
     rain = 2
     wetgrass = 3
     
-    cNode = BayesNode(0, 2, index=0, name="cloudy")
-    sNode = BayesNode(1, 2, index=1, name="sprinkler")
-    rNode = BayesNode(2, 2, index=2, name="rain")
-    wNode = BayesNode(3, 2, index=3, name="wetgrass")
+    cNode = BayesNode(0, 2, name="cloudy")
+    sNode = BayesNode(1, 2, name="sprinkler")
+    rNode = BayesNode(2, 2, name="rain")
+    wNode = BayesNode(3, 2, name="wetgrass")
 
     #cloudy
     cNode.add_child(sNode)

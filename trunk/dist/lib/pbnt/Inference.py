@@ -1,3 +1,6 @@
+#Python Library packages
+import heapq
+
 #Major Packages
 from numarray import *
 import numarray.ieeespecial as ieee
@@ -19,14 +22,34 @@ class InferenceEngine:
     
     def __init__(self, bnet):
         self.bnet = bnet
-        self.evidence = zeros(bnet.numNodes) + -1
+        self.evidence = dict(zip(bnet.nodes, zeros(bnet.numNodes) + -1))
+    
+    def get_evidence(self, nodes):
+        if isinstance(nodes, types.ListType):
+            ev = []
+            for node in nodes:
+                ev.append(self.evidence[node])
+        else:
+            ev = self.evidence[nodes]
+        return ev
 
     def init_evidence(self, evidence):
         self.evidence = evidence
         
-    def change_evidence (self, varIndex, values):
-        self.evidence[varIndex] = values
+    def change_evidence (self, var, value):
+        if isinstance(var, types.ListType):
+            assert(len(var) == len(value)), "change_evidence: Variables and Values do not match"
+            for v, val in zip(var, value):
+                self.evidence[v] = val
+        else:
+            self.evidence[var] = value
     
+    def empty_evidence(self):
+        nonEvidence = []
+        for item in self.evidence.items():
+            if item[1] == BLANKEVIDENCE:
+                nonEvidence.append(item[0])
+        
     def marginal(self):
         self.action()
 
@@ -44,13 +67,13 @@ class EnumerationEngine(InferenceEngine):
             ns = node.size()
             # Create the return distribution.
             Q = DiscreteDistribution(node)
-            if self.evidence[node.index] == -1:
+            if self.evidence[node] == BLANKEVIDENCE:
                  for val in range(ns):
                      prob = self.__enumerate_all(node, val)
                      index = Q.generate_index([val], range(Q.nDims))
                      Q[index] = prob
             else:
-                val = self.evidence[node.index]
+                val = self.evidence[node]
                 index = Q.generate_index([val], range(Q.nDims))
                 Q[index] = 1
             Q.normalize()
@@ -63,10 +86,10 @@ class EnumerationEngine(InferenceEngine):
     def __enumerate_all(self, node, value):
         """ We are going to iterate through all values of all non-evidence nodes. For each state of the evidence we sum the probability of that state by the probabilities of all other states.
         """
-        oldValue = self.evidence[node.index]
+        oldValue = self.evidence[node]
         # Set the value of the query node to value, since we don't want to iterate over it.
-        self.change_evidence(node.index, value)
-        nonEvidence = where(self.evidence == -1)[0]
+        self.change_evidence(node, value)
+        nonEvidence = self.empty_evidence()
         self.__initialize(nonEvidence)
         # Get the probability of the initial state of all nodes.
         prob = self.__probability(self.evidence)
@@ -78,7 +101,7 @@ class EnumerationEngine(InferenceEngine):
         return prob
     
     def __initialize(self, nonEvidence):
-        self.evidence[nonEvidence] = 0
+        self.change_evidence(nonEvidence, [0]*len(nonEvidence))
     
     def __next_state(self, nonEvidence):
         # Generate the next possible state of the evidence.
@@ -101,9 +124,10 @@ class EnumerationEngine(InferenceEngine):
     def __probability(self, state):
         # Compute the probability of the state of the bayes net given the values of state.
         Q = 1
-        for i in range(len(state)):
-            node = self.bnet.nodes[i]
+        for ev in state.items():
+            node = ev[0]
             dist = node.dist
+            # START HERE, MAYBE MAKE EVIDENCE ITS OWN STRUCTURE
             vals = state[node.evidence_index()]
             # Generate a slice object to index into dist using vals.
             index = dist.generate_index(vals, range(dist.nDims))
@@ -241,7 +265,6 @@ class JunctionTreeEngine(InferenceEngine):
             distributions.append(Q)
         return distributions
         
-        
     def global_propagation(self):
         self.joinTree.initialized = False
         # Arbitrarily pick a clique to be the root node, could be OPTIMIZED
@@ -291,42 +314,22 @@ class JunctionTreeEngine(InferenceEngine):
     def absorb(self, clique, sepset, oldPotential):
         """ absorb divides the sepset's potential by the old potential.  The result is multiplied by the clique's potential.  Please see c. Huang and A. Darwiche 96.  As with project, this could be optimized by finding the best set of axes to iterate over (either the sepsets, or the clique's axes that are not in the sepset).  The best solution would be to define a multiplication operation on a Potential that hides the details.
         """
-        cliqueAxes = sepset.clique_axes(clique)
-        # Wherever oldPotential == 0 we are guaranteed to have sepset.potential == 0. So to avoid
-        # divide by 0 warnings we set these places to 1.
-        index = oldPotential.generate_index([],[])
-        # FIXME: we are breaking our abstraction barrier.
-        indices = oldPotential[index] == 0
-        oldPotential.table[indices] = 1
-        # Division of the new and old potentials
-        index = sepset.potential.generate_index([],[])
-        sepset.potential[index] /= oldPotential[index]
-        for seq in SequenceGenerator(sepset.potential.dims):
-            index = clique.potential.generate_index(seq, cliqueAxes)
-            seqIndex = sepset.potential.generate_index(seq, range(sepset.potential.nDims))
-            clique.potential[index] *= sepset.potential[seqIndex]
+        #ABSTRACTION ERROR: We are breaking the abstraction layer here, but can't think of another way to do it without changing __div__
+        # Wherever sepset.potential is 0, oldPotential is guaranteed to be, so fix it so that we don't divide by 0
+        oldPotential[repr(sepset.potential == 0)] = 1
+        sepset.potential /= oldPotential
+        clique.potential *= sepset.potential
 
     def build_join_tree (self, triangulatedGraph):
         # The Triangulated Graph is really a graph of cliques.
         cliques = triangulatedGraph.cliques
         # We start by creating a forest of trees, one for each clique.
         forest = [JoinTree(clique) for clique in cliques]
-        sepsetHeap = PriorityQueue()
-        # Create sepsets by matching each clique with every other clique.
-        # We need to generate a unique id for each sepset.
-        id = 0
-        for i in range(len(cliques) - 1):
-            for clique in cliques[i+1:]:
-                sepset = Sepset(id, cliques[i], clique)
-                id += 1
-                sepsetHeap.insert(sepset)
-        
+        sepsetHeap = self.create_sepset_priority_queue(cliques)
         # Join n - 1 sepsets together forming (hopefully) a single tree.
         for n in range(len(forest) - 1):
-            while sepsetHeap.hasNext():
-                # Get the sepset with the maximum mass breaking ties by
-                # choosing the sepset with the smallest cost.
-                sepset = sepsetHeap.next()
+            while sepsetHeap:
+                sepset = heapq.heappop(sepsetHeap)
                 # Find out which tree each clique is from
                 joinTreeX = GraphUtilities.getTree(forest, sepset.cliqueX)
                 joinTreeY = GraphUtilities.getTree(forest, sepset.cliqueY)
@@ -335,16 +338,24 @@ class JunctionTreeEngine(InferenceEngine):
                     joinTreeX.merge(sepset, joinTreeY)
                     forest.remove(joinTreeY)
                     break
-                
-        for tree in forest:
-            tree.init_clique_potentials(self.bnet.nodes)
-        
-        # We return the forest here, but in reality we are only set to 
-        # compute marginals on a single tree, not a forest of trees.
-        if len( forest ) > 1:
-            return forest
+        if len(forest) > 0:
+            raise BadTreeStructure("Inference on a forest of Junction Trees is not yet supported")
         else:
-            return forest[0]
+            tree = forest[0]
+        tree.init_clique_potentials(self.bnet.nodes)
+        return tree
+    
+    def create_sepset_priority_queue(self, cliques):
+        """ Create a sepset (with a unique id) for every unique pair of cliques, and insert it into a priority queue.
+        """
+        sepsetHeap = []
+        id = 0
+        for i in range(len(cliques) - 1):
+            for clique in cliques[i+1:]:
+                sepset = Sepset(id, cliques[i], clique)
+                id += 1
+                heapq.heappush(sepset)
+        return sepsetHeap
     
 
 class JunctionTreeDBNEngine(JunctionTreeEngine):

@@ -59,7 +59,7 @@ class Potential:
         tmp = zeros(self.nDims) - 1
         if len(axis) > 0:
             tmp[axis] = index
-            indexStr = ""
+        indexStr = ""
         for i in tmp:
             if i == -1:
                 indexStr += ":,"
@@ -188,6 +188,7 @@ class Potential:
         else:
             assert(self.__nodeSet_ == other.__nodeSet_)
             other.transpose(self.nodes)
+            
             self.table /= other.table
         return self
     

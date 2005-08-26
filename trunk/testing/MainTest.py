@@ -1,4 +1,3 @@
-import BayesNetTest
 import EnumerationTest
 import JunctionTreeTest
 import UtilitiesTest
@@ -19,13 +18,13 @@ print "starting Utilities"
 Usuccess = UtilitiesTest.test()
 
 if alltrue(Esuccess) and alltrue(Usuccess) and alltrue(JTsuccess) and alltrue(Msuccess):
-  print "ALL TESTS SUCCESSFUL"
+    print "ALL TESTS SUCCESSFUL"
 else:
-  print "JunctionTree Failed AT: %s\n", (where(JTsuccess==0)[0])
-  print "Enumeration Failed AT: %s\n", (where(Esuccess==0)[0])
-  print "Utilities Failed AT: %s\n", (where(Usuccess==0)[0])
-  print "MCMC Failed AT: %s\n", (where(Msuccess==0)[0])
-  
+    print "JunctionTree Failed AT: %s\n", (where(JTsuccess==0)[0])
+    print "Enumeration Failed AT: %s\n", (where(Esuccess==0)[0])
+    print "Utilities Failed AT: %s\n", (where(Usuccess==0)[0])
+    print "MCMC Failed AT: %s\n", (where(Msuccess==0)[0])
+    
 print "finished tests"
 
 
