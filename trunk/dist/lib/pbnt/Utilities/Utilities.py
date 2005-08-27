@@ -104,36 +104,31 @@ def sequence_generator(iterObjs):
             yield value
         raise StopIteration
 
-
-class PriorityQueue:
-        
-        def __init__( self ):
-                self.queue = []
-                self.i = -1
-        
-        def insert( self, node ):
-                self.queue.append( node )
-                self.queue.sort()
-        
-        def __iter__( self ):
-                self.i = -1
-                return self
-        
-        def next( self ):
-                if self.i == len( self.queue ) - 1:
-                        raise StopIteration
-                self.i += 1
-                return self.queue[self.i]
-        
-        def hasNext( self ):
-                return len( self.queue ) > 0
-        
-        def init( self ):
-                self.i = -1
-
-
+class Evidence(dict):
+    """ This is the data structure for evidence.  It acts exactly like a dictionary except that it will take lists of keys with the [] notation, rather than just single keys.
+    """
     
-
+    def __setitem__(self, keys, values):
+        if not isinstance(keys, types.ListType):
+            keys = [keys]
+            values = [values]
+        elif not isinstance(values, types.ListType):
+            values = [values]*len(keys)
+        items = zip(keys,values)
+        self.update(items)
+    
+    def __getitem__(self, keys):
+        if isinstance(keys, types.ListType):
+            values = []
+            for key in keys:
+                values.append(self.get(key))
+        else:
+            values = self.get(keys)
+        return values
+                
+        
+                
+            
     
 
 

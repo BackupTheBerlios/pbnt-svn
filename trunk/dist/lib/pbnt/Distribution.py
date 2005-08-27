@@ -3,7 +3,7 @@ import GraphUtilities
 import Utilities
 
 
-class Potential:
+class Potential(object):
     """ Potentials are very similar to a conditional distribution in that they specify the probability over a set of nodes. The difference is that potentials are not thought of as being centered on the value a one node given other nodes. Therefore, a conditional distribution could be thought of as a special case of a potential.
     """
     
@@ -214,6 +214,13 @@ class DiscreteDistribution(Potential):
     
     def __eq__(self, other):
         self.node == other.node
+    
+    def __getattr__(self, attrname):
+        if attrname == "nodes":
+            attr = [self.node]
+        else:
+            attr = object.__getattr__(self, attrname)
+        return attr
         
 class ConditionalDiscreteDistribution(Potential):
     """ This is very similar to a potential, except that ConditionalDiscreteDistributions are focused on a single variable and its value conditioned on other variables.

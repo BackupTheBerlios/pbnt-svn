@@ -7,6 +7,7 @@ import numarray.ieeespecial as ieee
 import numarray.random_array as ra
 
 #Local Project Modules
+from __init__ import *
 from Graph import *
 from Node import *
 from Distribution import *
@@ -22,7 +23,7 @@ class InferenceEngine:
     
     def __init__(self, bnet):
         self.bnet = bnet
-        self.evidence = dict(zip(bnet.nodes, zeros(bnet.numNodes) + -1))
+        self.evidence = Evidence(zip(bnet.nodes, [-1]*len(bnet.nodes)))
     
     def get_evidence(self, nodes):
         if isinstance(nodes, types.ListType):
@@ -49,7 +50,8 @@ class InferenceEngine:
         for item in self.evidence.items():
             if item[1] == BLANKEVIDENCE:
                 nonEvidence.append(item[0])
-        
+        return nonEvidence
+    
     def marginal(self):
         self.action()
 
@@ -88,7 +90,7 @@ class EnumerationEngine(InferenceEngine):
         """
         oldValue = self.evidence[node]
         # Set the value of the query node to value, since we don't want to iterate over it.
-        self.change_evidence(node, value)
+        self.evidence[node] = value
         nonEvidence = self.empty_evidence()
         self.__initialize(nonEvidence)
         # Get the probability of the initial state of all nodes.
@@ -97,27 +99,26 @@ class EnumerationEngine(InferenceEngine):
             prob += self.__probability(self.evidence)
         # Restore the state of evidence to its state at the beginning of enumerate_all.
         self.evidence[nonEvidence] = -1
-        self.change_evidence(node.index, oldValue)
+        self.evidence[node] = oldValue
         return prob
     
     def __initialize(self, nonEvidence):
-        self.change_evidence(nonEvidence, [0]*len(nonEvidence))
+        self.evidence[nonEvidence] = 0
     
     def __next_state(self, nonEvidence):
         # Generate the next possible state of the evidence.
-        numberOfNodes = len(nonEvidence)
-        for index in nonEvidence:
-            if self.evidence[index] == (self.bnet.nodes[index].size() - 1):
+        for node in nonEvidence:
+            if self.evidence[node] == (node.size() - 1):
                 # If the value of the node is its max value, then reset it.
-                if index == nonEvidence[numberOfNodes - 1]:
+                if node == nonEvidence[-1]:
                     # If we iterated through to the last nonEvidence node, and didn't find a new 
                     # value, then we have visited every possible state.
                     return False
                 else:
-                    self.evidence[index] = 0
+                    self.evidence[node] = 0
                     continue
             else:
-                self.evidence[index] += 1
+                self.evidence[node] += 1
                 break
         return True
         
@@ -128,7 +129,7 @@ class EnumerationEngine(InferenceEngine):
             node = ev[0]
             dist = node.dist
             # START HERE, MAYBE MAKE EVIDENCE ITS OWN STRUCTURE
-            vals = state[node.evidence_index()]
+            vals = state[dist.nodes]
             # Generate a slice object to index into dist using vals.
             index = dist.generate_index(vals, range(dist.nDims))
             Q *= node.dist[index]
