@@ -33,10 +33,8 @@ class Node:
     def add_neighbor(self, node):
         """ Make node a neighbor if it is not alreadly.  This is a hack, we should be allowing self to be a neighbor of self in some graphs.  This should be enforced at the level of a graph, because that is where the type of the graph would disallow it.
         """
-        if (not node in self.neighborSet) and (not self == node):
-            self.neighbors.append(node)
-            self.neighbors.sort()
-            self.neighborSet.add(node)
+        if (not node in self.neighbors) and (not self == node):
+            self.neighbors.add(node)
     
     def remove_neighbor(self, node):
         # Remove the node from the list of neighbors, effectively deleting that edge from

@@ -25,33 +25,6 @@ class InferenceEngine:
         self.bnet = bnet
         self.evidence = Evidence(zip(bnet.nodes, [-1]*len(bnet.nodes)))
     
-    def get_evidence(self, nodes):
-        if isinstance(nodes, types.ListType):
-            ev = []
-            for node in nodes:
-                ev.append(self.evidence[node])
-        else:
-            ev = self.evidence[nodes]
-        return ev
-
-    def init_evidence(self, evidence):
-        self.evidence = evidence
-        
-    def change_evidence (self, var, value):
-        if isinstance(var, types.ListType):
-            assert(len(var) == len(value)), "change_evidence: Variables and Values do not match"
-            for v, val in zip(var, value):
-                self.evidence[v] = val
-        else:
-            self.evidence[var] = value
-    
-    def empty_evidence(self):
-        nonEvidence = []
-        for item in self.evidence.items():
-            if item[1] == BLANKEVIDENCE:
-                nonEvidence.append(item[0])
-        return nonEvidence
-    
     def marginal(self):
         self.action()
 
@@ -91,7 +64,7 @@ class EnumerationEngine(InferenceEngine):
         oldValue = self.evidence[node]
         # Set the value of the query node to value, since we don't want to iterate over it.
         self.evidence[node] = value
-        nonEvidence = self.empty_evidence()
+        nonEvidence = self.evidence.empty()
         self.__initialize(nonEvidence)
         # Get the probability of the initial state of all nodes.
         prob = self.__probability(self.evidence)
@@ -135,64 +108,56 @@ class EnumerationEngine(InferenceEngine):
             Q *= node.dist[index]
         return Q
 
-class MCMCEngine( InferenceEngine ):
+class MCMCEngine(InferenceEngine):
         #implemented as described in Russell and Norvig
         #X is a list of variables
         #N is thenumber of samples
-        def marginal ( self, X, N ):
-            flipped = 0
+        def marginal (self, X, N):
             Nx = [DiscreteDistribution(x) for x in X]
             queryIndex = array([x.index for x in X])
             state = self.evidence.copy()
-            nonEvMask = state == -1
-            nonEv = obj.array(self.bnet.nodes)[nonEvMask]
-            randMax = array([node.size() for node in nonEv])
+            nonEvidence = state.empty()
+            randMax = array([node.size() for node in nonEvidence])
             #ASSUMPTION: zero is the minimum value
-            randMin = zeros([len( nonEv )])
+            randMin = zeros([len(nonEvidence)])
             #initialize nonEvidence variables to random values
-            state[nonEvMask] = ra.randint( randMin, randMax )
-            #FOR DEBUGGING ONLY
-            valuesList = []
-            for i in range( N ):
-                valuesList += [state[3]]
+            state[nonEvidence] = ra.randint(randMin, randMax)
+            for i in range(N):
                 #record the value of all of the query variables
+                # We start with a 100 sample cut as default
                 if i > 100:
-                    for (q, dist) in zip(queryIndex, Nx):
-                        dist.CPT[state[q]] += 1
-                        for node in nonEv:
+                    for (node, dist) in zip(X, Nx):
+                        dist[state[node]] += 1
+                        for node in nonEvidence:
                             val = self.sampleValueGivenMB(node, state)
                             #change the state to reflect new value of given variable
-                            if not state[node.index] == val:
-                                state[node.index] = val
-                                flipped += 1               
-            for i in range(len( Nx )):
-                Nx[i].normalise()
+                            if not state[node] == val:
+                                state[node] = val             
+            for dist in Nx:
+                dist.normalize()
             return Nx
                                 
 
-        def sampleValueGivenMB( self, node, state ):
-                #init to be the prob dist of node given parents
-                parents = node.parents
-                parentsI = array([p.index for p in parents])
-                #ASSUMPTION: node is arranged by parents
-                MBval = node.CPT.getValue( state[parentsI], axes=range( node.CPT.nDims - 1 ) )
-                children = node.children
-                #want to save state
-                oldVal = state[node.index]
-                #OPTIMIZE: could vectorize this code
-                for value in range(node.size()):
-                        state[node.index] = value
-                        for child in children:
-                                childPsI = [p.index for p in child.parents]
-                                parentVals = state[childPsI]
-                                childVal = state[child.index]
-                                indices = concatenate((parentVals, childVal))
-                                MBval[value] *= child.CPT.getValue(indices)
-                
-                state[node.index] = oldVal
-                MBval.normalize()                
-                val = util.sample(MBval)
-                return val
+        def sample_value_given_mb(self, node, state):
+            MBval = DiscreteDistribution(node)
+            children = node.children
+            #want to save state
+            oldVal = state[node]
+            #OPTIMIZE: could vectorize this code
+            for value in range(node.size()):
+                state[node] = value
+                values = state[node.dist.nodes]
+                index = node.dist.generate_index(values, range(node.dist.nDims))
+                MBindex = MBval.generate_index(value, range(MBval.nDims))
+                MBval[MBindex] = node.dist[index]
+                for child in children:
+                    vals = state[child.dist.nodes]
+                    index = child.dist.generate_index(vals, range(child.dist.nDims))
+                    MBval[MBindex] *= child.dist[index]
+            state[node] = oldVal
+            MBval.normalize()                
+            val = util.sample(MBval)
+            return val
 
 
 class JunctionTreeEngine(InferenceEngine):

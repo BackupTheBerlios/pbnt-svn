@@ -114,10 +114,11 @@ class MoralGraph(Graph):
             node.undirect()
         #connect all pairs of parents
         for node in self.nodes:
-            parents = node.parents
-            for i in range(len(parents)):
-                for parent in parents[i:]:
-                    self.connect_nodes(node.parents[i], parent)
+            parents = copy.copy(node.parents)
+            for parent in parents:
+                for otherParent in parents:
+                    if parent != otherParent:
+                        self.connect_nodes(parent, otherParent)
     
     def deep_copy_nodes(self):
         newNodes = list()
@@ -216,22 +217,15 @@ class JoinTree(Graph):
         self.init_clique_potentials(variables)
     
     def enter_evidence(self, evidence, nodes):
-        mask = evidence != -1
-        values = evidence[mask]
-        nodeIndices = array(range(len( nodes )))[mask]
-        for (nodeI, value) in zip(nodeIndices, values):
-            node = nodes[nodeI]
+        """ For all nodes that are not blank, we want to make its family clique consistent with the evidence.  This can be done by setting all values of the clique that are consistent with the evidence to 1 and all other places to 0.
+        """
+        setNodes = evidence.set_nodes()
+        for node in setNodes:
             clique = node.clique
-            axis = [clique.nodes.index(node)]
-            # FIXME: This really should be a plain numarray object and 
-            # then indexed with a slice object
-            potentialMask = Potential(clique.nodes)
-            allIndex = potentialMask.generate_index([],[])
-            potentialMask[allIndex] = 0
-            index = potentialMask.generate_index([value], [axis])
+            potentialMask = Potential(clique.potential.nodes, default=0)
+            index = potentialMask.generate_index_node(evidence[node], node)
             potentialMask[index] = 1
-            cAllIndex = clique.potential.generate_index([],[])
-            clique.potential[cAllIndex] *= potentialMask[allIndex]   
+            clique.potential *= potentialMask
 
 class BadGraphStructure:
     """ An exception class used to denote a graph with a malformed structure.  It is currently used to throw an error when a DAG is cyclic.

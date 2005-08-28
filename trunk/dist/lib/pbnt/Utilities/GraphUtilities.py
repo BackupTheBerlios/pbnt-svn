@@ -27,12 +27,13 @@ def unmark_all_nodes( graph ):
         node.visited = False
 
 
-def missingEdges( node ):
-    edges = []
-    for (neighbor, i) in zip( node.neighbors, range(len( node.neighbors ) - 1) ):
-        for (otherNeighbor, j) in zip( node.neighbors[i:], range(len( node.neighbors[i:] )) ):
-            if not otherNeighbor in neighbor.neighborSet:
-                edges.append( (i,j+i+1) )
+def missing_edges( node ):
+    edges = set()
+    for neighbor in node.neighbors:
+        for otherNeighbor in node.neighbors:
+            if not otherNeighbor == neighbor:
+                if not otherNeighbor in neighbor.neighborSet:
+                    edges.add(set([neighbor, otherNeighbor]))
     return edges
                 
                 
@@ -104,30 +105,27 @@ def flatIndex(indices, shape):
 
 class InducedCluster:
     
-    def __init__( self, node ):
+    def __init__(self, node):
         self.node = node
-        self.edges = missingEdges( self.node )
-        self.nEdges = len( self.edges )
-        self.weight = self.computeWeight()
-    
-    
+        self.edges = missing_edges(self.node)
+        self.nEdges = len(self.edges)
+        self.weight = self.compute_weight()
+
     def __lt__( self, other ):
         #less than means that it is better (pick it first)
         if self.nEdges < other.nEdges:
             return True
         if self.nEdges == other.nEdges and self.weight < other.weight:
             return True
-        
         return False
     
     def recompute( self ):
-        self.edges = missingEdges( self.node )
-        self.nEdges = len( self.edges )
-        self.weight = self.computeWeight()
+        self.edges = missing_edges(self.node)
+        self.nEdges = len(self.edges)
+        self.weight = self.compute_weight()
     
-    def computeWeight( self ):
+    def compute_weight( self ):
         return product(array( [node.size() for node in self.node.neighbors] + [self.node.size()] ))
-    
     
 class ClusterBinaryHeap:
         
@@ -135,40 +133,33 @@ class ClusterBinaryHeap:
                 self.heap = []
         
         def insert( self, node ):
-                iCluster = InducedCluster( node )
-                self.heap.append( iCluster )
+                iCluster = InducedCluster(node)
+                self.heap.append(iCluster)
                 self.heap.sort()
         
-        def __iter__( self ):
+        def __iter__(self):
                 return self
         
-        def next( self ):
-                if len( self.heap ) == 0:
+        def next(self):
+                if len(self.heap) == 0:
                         raise StopIteration
-                
                 cluster = self.heap[0]
-                
                 del self.heap[0]
-                
                 #find the affected nodes
                 tmpClusterList = []
                 for node in cluster.node.neighbors:
                         for c in self.heap:
                                 if c.node == node:
-                                        c.node.neighbors.remove( cluster.node )
-                                        tmpClusterList.append( c )
+                                        c.node.neighbors.remove(cluster.node)
+                                        tmpClusterList.append(c)
                                         break
-                
                 #recompute cluster score of effected clusters
                 for c in tmpClusterList:
                         c.recompute()
-                
                 #reorder now that edges have changed
                 self.heap.sort()
-        
                 return (cluster.node, cluster.edges)
                 
-        
         def hasNext( self ):
                 return not len( heap ) == 0
                 

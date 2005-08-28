@@ -2,6 +2,7 @@ from __future__ import generators
 from numarray import *
 import numarray.random_array as ra
 
+from __init__ import *
 
 # Miscellaneous utility functions for use with the rest of the BayesNet Package
     
@@ -125,6 +126,20 @@ class Evidence(dict):
         else:
             values = self.get(keys)
         return values
+    
+    def empty(self):
+        nonEvidence = []
+        for item in self.items():
+            if item[1] == BLANKEVIDENCE:
+                nonEvidence.append(item[0])
+        return nonEvidence
+    
+    def set_nodes(self):
+        ev = []
+        for item in self.items():
+            if item[1] != BLANKEVIDENCE:
+                ev.append(item[0])
+        return ev
                 
         
                 
