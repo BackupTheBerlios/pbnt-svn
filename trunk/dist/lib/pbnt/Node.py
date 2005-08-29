@@ -131,12 +131,7 @@ class Clique(Node):
     
     def contains(self, nodes):
         # Checks if all of nodes is contained in self.nodes
-        isIn = True
-        for node in nodes:
-            if not node in self.nodes:
-                isIn = False
-                break
-        return isIn
+        return self.nodes.issuperset(nodes)
  
 
 class Sepset(Node):
@@ -150,10 +145,7 @@ class Sepset(Node):
         # Clique that is connected to the other side of self.
         self.cliqueY = cliqueY
         # The nodes that are in self
-        self.nodeSet = cliqueX.nodeSet.intersection(cliqueY.nodeSet)
-        self.nodes = list(self.nodeSet)
-        # Make sure that they are in topo order
-        self.nodes.sort()
+        self.nodes = cliqueX.nodes.intersection(cliqueY.nodes)
         # The mass of self (the number of nodes it relates to.
         self.mass = len(self.nodes)
         # The cost, used for breaking ties between mass.  The cost is equal to the 
@@ -162,18 +154,7 @@ class Sepset(Node):
         costY = product(array([node.size() for node in cliqueY.nodes]))
         self.cost = costX + costY
         self.neighbors = [cliqueX, cliqueY]
-        self.potential = Potential(self.nodes)
-        self.cliqueXAxes = array([cliqueX.nodes.index(node) for node in self.nodes])
-        self.cliqueYAxes = array([cliqueY.nodes.index(node) for node in self.nodes])
-        
-    
-    def clique_axes(self, clique):
-        # Return the clique axes that match the input clique.
-        if clique == self.cliqueX:
-            return self.cliqueXAxes
-        else:
-            return self.cliqueYAxes
-    
+        self.potential = Potential(self.nodes)            
     
     def __lt__(self, other):
         # This test is used to order nodes when deciding which sepset has highest priority.

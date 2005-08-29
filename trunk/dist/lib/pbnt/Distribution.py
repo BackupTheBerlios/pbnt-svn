@@ -8,9 +8,11 @@ class Potential(object):
     """
     
     def __init__(self, nodes, table=[], default=1):
-        self.nodes = nodes
+        #WARNING: prone to bugs where we convert nodes to a 
+        #list, but table was given and doesn't match newly created list
+        self.nodes = list(nodes)
         self.__nodeSet_ = set(nodes)
-        self.dims = array([node.size() for node in nodes])
+        self.dims = array([node.size() for node in self.nodes])
         if not isinstance(table, ArrayType):
             self.table = zeros(self.dims, type= Float32) + default
         else:
@@ -24,11 +26,14 @@ class Potential(object):
         new = copy.deepcopy(other)
         intersect = self.__nodeSet_.intersection(new.__nodeSet_)
         newAxes = range(new.nDims)
-        sequence = SequenceGenerator(other.dims)
+        sequence = Utilities.sequence_generator(other.dims)
         for seq in sequence:
             index = self.generate_index_node(seq, intersect)
             newIndex = new.generate_index(seq, newAxes)
-            new[newIndex] = self[index].sum()
+            val = self[index]
+            if isinstance(val, ArrayType):
+                val = val.sum()
+            new[newIndex] = val
         return new
     
     def normalize(self):
@@ -72,7 +77,7 @@ class Potential(object):
         #FIXME: would like the assertion to be stronger, would like set(nodes) == self.__nodeSet_
         assert(len(nodes) == self.nDims), "Potential Error: Cannot take transpose with a different set of nodes"
         axes = [self.nodes.index(node) for node in nodes]
-        self.table.transpose(axis=axes)
+        self.table.transpose(axes)
         self.nodes = nodes
         self.__nodeSet_ = set(nodes)
     
@@ -149,20 +154,20 @@ class Potential(object):
         """
         if isinstance(right, (int, float, complex, long)):
             self.table *= right
-        else:
+        # FIXME: should be right.__nodeSet_ but doesn't work when right is DiscreteDistribution
+        elif self.__nodeSet_.issuperset(right.nodes):
             #OPTIMIZE: There must be a way to do this without iterating over every value of table
-            if self.__nodeSet_.issuperset(right.__nodeSet_):
-                selfAxes = [self.nodes.index(node) for node in right.nodes]
-                rightAxes = range(right.nDims)
-                for seq in Utilities.sequence_generator(right.dims):
-                    selfIndex = self.generate_index(seq, selfAxes)
-                    #OPTIMIZE: Could index right.table directly, but this upholds our abstraction barrier
-                    rightIndex = right.generate_index(seq, rightAxes)
-                    self[selfIndex] *= right[rightIndex]
-            else:
-                """ If potential will be over a different set of variables after multiplication, might as well use full __mul__ version, which copies.
-                """
-                self = self.__mul__(right)
+            selfAxes = [self.nodes.index(node) for node in right.nodes]
+            rightAxes = range(right.nDims)
+            for seq in Utilities.sequence_generator(right.dims):
+                selfIndex = self.generate_index(seq, selfAxes)
+                #OPTIMIZE: Could index right.table directly, but this upholds our abstraction barrier
+                rightIndex = right.generate_index(seq, rightAxes)
+                self[selfIndex] *= right[rightIndex]
+        else:
+            """ If potential will be over a different set of variables after multiplication, might as well use full __mul__ version, which copies.
+            """
+            self = self.__mul__(right)
         return self
     
     def __rmul__(self, other):
@@ -196,12 +201,17 @@ class Potential(object):
         copyTable = copy.deepcopy(self.table)
         return Potential(nodes=self.nodes, table=copyTable)        
     
+    
 class DiscreteDistribution(Potential):
     """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.
     """
     
     def __init__(self, node):
         self.node = node
+        # FIXME: These should be accomplished through the overloading of __getattr__
+        self.nodes = [node]
+        self.__nodeSet_ = set([node])
+        # END FIXME
         self.table = zeros([node.size()], type=Float32)
         self.dims = array(shape(self.table))
         self.nDims = 1
@@ -214,13 +224,7 @@ class DiscreteDistribution(Potential):
     
     def __eq__(self, other):
         self.node == other.node
-    
-    def __getattr__(self, attrname):
-        if attrname == "nodes":
-            attr = [self.node]
-        else:
-            attr = object.__getattr__(self, attrname)
-        return attr
+        
         
 class ConditionalDiscreteDistribution(Potential):
     """ This is very similar to a potential, except that ConditionalDiscreteDistributions are focused on a single variable and its value conditioned on other variables.

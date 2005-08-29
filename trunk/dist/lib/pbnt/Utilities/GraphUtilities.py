@@ -28,12 +28,12 @@ def unmark_all_nodes( graph ):
 
 
 def missing_edges( node ):
-    edges = set()
+    edges = list()
     for neighbor in node.neighbors:
         for otherNeighbor in node.neighbors:
             if not otherNeighbor == neighbor:
-                if not otherNeighbor in neighbor.neighborSet:
-                    edges.add(set([neighbor, otherNeighbor]))
+                if not otherNeighbor in neighbor.neighbors:
+                    edges.append([neighbor, otherNeighbor])
     return edges
                 
                 

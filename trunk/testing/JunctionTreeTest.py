@@ -40,13 +40,13 @@ def test():
         test0 = 0
         print "Test 0B: FAILED\n"
     
-    engine.change_evidence(cloudy, False)
-    engine.change_evidence(rain, True)
+    engine.evidence[cloudy] = False
+    engine.evidence[rain] = True
     
     Q = engine.marginal(wetgrass)[0]
     
     test1 = 1
-    if alltrue(engine.evidence == array([0,-1,1,-1])):
+    if engine.evidence[[cloudy, sprinkler, rain, wetgrass]] == [0,-1,1,-1]:
         print "Test 1: OK\n"
     else:
         test1 = 0
@@ -87,9 +87,9 @@ def test():
         print "Test 3B: FAILED\n"
     
     
-    engine.change_evidence(cloudy, -1)
-    engine.change_evidence(sprinkler, 0)
-    engine.change_evidence(wetgrass, 1)
+    engine.evidence[cloudy] = -1
+    engine.evidence[sprinkler] = 0
+    engine.evidence[wetgrass] = 1
     
     Q = engine.marginal(cloudy)[0]
     

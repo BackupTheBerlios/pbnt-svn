@@ -220,13 +220,19 @@ class JunctionTreeEngine(InferenceEngine):
         # DELETE: End delete here
         
         distributions = []
+        if not isinstance(query, types.ListType):
+            query = [query]
         for node in query:
             Q = DiscreteDistribution(node)
             for value in range(node.size()):
                 potential = node.clique.potential
-                index = potential.generate_index([value], [node.clique.nodes.index(node)])
+                index = potential.generate_index_node([value], [node])
                 distIndex = Q.generate_index([value], range(Q.nDims))
-                Q[distIndex] = potential[index].sum()
+                #FIXME: must be a better way to handle sum problem
+                val = potential[index]
+                if isinstance(val, ArrayType):
+                    val = val.sum()
+                Q[distIndex] = val
             Q.normalize()
             distributions.append(Q)
         return distributions
@@ -234,7 +240,10 @@ class JunctionTreeEngine(InferenceEngine):
     def global_propagation(self):
         self.joinTree.initialized = False
         # Arbitrarily pick a clique to be the root node, could be OPTIMIZED
-        startClique = self.joinTree.nodes[0]
+        startClique = self.joinTree.nodes.pop()
+        # Seems very awkward, but with sets there is no 
+        # way that I know of to get an element without popping it off.
+        self.joinTree.nodes.add(startClique)
         GraphUtilities.unmark_all_nodes(self.joinTree)
         # We use 0 to denote that there was no prevCluster
         self.collect_evidence(0, startClique, 0, True)
@@ -281,8 +290,8 @@ class JunctionTreeEngine(InferenceEngine):
         """ absorb divides the sepset's potential by the old potential.  The result is multiplied by the clique's potential.  Please see c. Huang and A. Darwiche 96.  As with project, this could be optimized by finding the best set of axes to iterate over (either the sepsets, or the clique's axes that are not in the sepset).  The best solution would be to define a multiplication operation on a Potential that hides the details.
         """
         #ABSTRACTION ERROR: We are breaking the abstraction layer here, but can't think of another way to do it without changing __div__
-        # Wherever sepset.potential is 0, oldPotential is guaranteed to be, so fix it so that we don't divide by 0
-        oldPotential[repr(sepset.potential == 0)] = 1
+        # Wherever sepset.potential.table is 0, oldPotential is guaranteed to be, so fix it so that we don't divide by 0
+        oldPotential[repr(sepset.potential.table == 0)] = 1
         sepset.potential /= oldPotential
         clique.potential *= sepset.potential
 
@@ -304,7 +313,7 @@ class JunctionTreeEngine(InferenceEngine):
                     joinTreeX.merge(sepset, joinTreeY)
                     forest.remove(joinTreeY)
                     break
-        if len(forest) > 0:
+        if len(forest) > 1:
             raise BadTreeStructure("Inference on a forest of Junction Trees is not yet supported")
         else:
             tree = forest[0]
@@ -320,7 +329,7 @@ class JunctionTreeEngine(InferenceEngine):
             for clique in cliques[i+1:]:
                 sepset = Sepset(id, cliques[i], clique)
                 id += 1
-                heapq.heappush(sepset)
+                heapq.heappush(sepsetHeap, sepset)
         return sepsetHeap
     
 

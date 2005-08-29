@@ -160,18 +160,20 @@ class TriangleGraph(Graph):
         # Copy the graph so that we can destroy the copy as we insert it into heap.
         # Deep copy isn't working, need to trace down bug but for now use hack.
         for i, node in enumerate(moral.deep_copy_nodes()):
-            node.index = i
             heap.insert(node)
         inducedCliques = []
+        nodes = list(self.nodes)
+        # Want nodes in their index order
+        nodes.sort
         for (node, edges) in heap:
-            realnode = self.nodes[node.index]
+            realnode = nodes[node.index]
             for edge in edges:
                 # We need to make sure we reference the nodes in the actual graph, 
                 # not the copied ones that were inserted into the heap.
-                node1 = self.nodes[node.neighbors[edge[0]].index]
-                node2 = self.nodes[node.neighbors[edge[1]].index]
+                node1 = nodes[edge[0].index]
+                node2 = nodes[edge[1].index]
                 self.connect_nodes(node1, node2)
-            clique = Clique([realnode] + realnode.neighbors)
+            clique = Clique(realnode.neighbors.union([realnode]))
             # We only add clique to inducedCliques if is not contained in a previously added clique
             GraphUtilities.addClique(inducedCliques, clique) 
         self.cliques = inducedCliques
@@ -192,7 +194,7 @@ class JoinTree(Graph):
     def init_clique_potentials(self, variables):
         # We currently only handle one tree long forests.
         for v in variables:
-            famV = v.parents + [v]
+            famV = v.parents.union([v])
             for clique in self.nodes:
                 if clique.contains(famV):
                     v.clique = clique
@@ -223,7 +225,7 @@ class JoinTree(Graph):
         for node in setNodes:
             clique = node.clique
             potentialMask = Potential(clique.potential.nodes, default=0)
-            index = potentialMask.generate_index_node(evidence[node], node)
+            index = potentialMask.generate_index_node([evidence[node]], [node])
             potentialMask[index] = 1
             clique.potential *= potentialMask
 
