@@ -5,10 +5,11 @@ import unittest
 # Major Packages
 import numarray
 # Assume we are in dist/tests directory
-sys.path.append('../lib/pbnt')
+
 # Library specific modules
-from pbnt import Distribution
-from pbnt import Node
+
+import pbnt.Distribution
+import pbnt.Node
 
 class PotentialTestCase(unittest.TestCase):
     def setUp(self):
