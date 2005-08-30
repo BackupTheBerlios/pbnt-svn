@@ -3,13 +3,12 @@
 import sys
 import unittest
 # Major Packages
-import numarray
+from numarray import *
 # Assume we are in dist/tests directory
-
+sys.path.append('../lib')
 # Library specific modules
-
-import pbnt.Distribution
-import pbnt.Node
+from pbnt import Distribution
+from pbnt import Node
 
 class PotentialTestCase(unittest.TestCase):
     def setUp(self):
@@ -18,14 +17,14 @@ class PotentialTestCase(unittest.TestCase):
         rNode = Node.BayesNode(2, 2, index=2, name="rain")
         wNode = Node.BayesNode(3, 2, index=3, name="wetgrass")
         self.nodes = [cNode, sNode, rNode, wNode]
-        self.potential = Distribution.Potential(nodes, default=1)
+        self.potential = Distribution.Potential(self.nodes, default=1)
     
     def testIntMultiply(self):
-        assert(alltrue(self.potential.table == 1) == True)
+        assert all(self.potential.table == 1)
         new = self.potential * 4
-        assert(alltrue(new.table == 4) == True)
+        assert all(new.table == 4)
         new = self.potential * 4
-        assert(alltrue(new.table == 4) == True)
+        assert all(new.table == 4)
         
     def testPotentialEQ(self):
         new = Distribution.Potential(self.nodes)
@@ -38,41 +37,41 @@ class PotentialTestCase(unittest.TestCase):
         # Not Finished
     
     def testIntDiv(self):
-        assert(alltrue(self.potential.table == 1) == True)
+        assert all(self.potential.table == 1)
         new = self.potential / 2
-        assert(alltrue(new.table == 0.5) == True)
+        assert all(new.table == 0.5)
         self.potential /= 2
-        assert(alltrue(self.potential.table == 0.5) == True)
+        assert all(self.potential.table == 0.5)
     
     def testBasicDiv(self):
-        assert(alltrue(self.potential.table == 1) == True)
+        assert all(self.potential.table == 1)
         other = Distribution.Potential(self.nodes, default=2)
         new = self.potential / other
-        assert(alltrue(new.table == 0.5) == True)
-        assert(alltrue(self.potential.table == 1) == True)
+        assert all(new.table == 0.5)
+        assert all(self.potential.table == 1)
         self.potential /= other
-        assert(alltrue(new.table == 0.5) == True)
+        assert all(new.table == 0.5)
     
-    def testTranspose(self):
-        """ Test both the copy and the inplace are working """
-        assert(alltrue(self.potential.table == 1) == True)
-        nodes = [self.nodes[2], self.nodes[1], self.nodes[3], self.nodes[0]]
-        self.potential.table = arange(16, shape=(2,2,2,2))
-        table = arange(16, shape=(2,2,2,2))
-        table.transpose(axis=(2,1,3,0))
-        # Make sure we didn't start out equal, sanity check
-        assert(alltrue(self.potential.table == table) == False)
-        new = Distribution.Potential(nodes, table=table)
-        newTable = new.transpose_copy(self.nodes)
-        # Check if the new table has been transposed correctly
-        assert(alltrue(self.potential.table == newTable) == True)
-        # Make sure we didn't do it in place
-        assert(alltrue(self.potential.table == new.table) == False)
-        new.transpose(self.nodes)
-        # Check if in place transpose worked
-        assert(alltrue(self.potential.table == new.table) == True)
+    #def testTranspose(self):
+        #""" Test both the copy and the inplace are working """
+        #assert(alltrue(self.potential.table == 1) == True)
+        #nodes = [self.nodes[2], self.nodes[1], self.nodes[3], self.nodes[0]]
+        #self.potential.table = arange(16, shape=(2,2,2,2))
+        #table = arange(16, shape=(2,2,2,2))
+        #table.transpose(axis=(2,1,3,0))
+        ## Make sure we didn't start out equal, sanity check
+        #assert(alltrue(self.potential.table == table) == False)
+        #new = Distribution.Potential(nodes, table=table)
+        #newTable = new.transpose_copy(self.nodes)
+        ## Check if the new table has been transposed correctly
+        #assert(alltrue(self.potential.table == newTable) == True)
+        ## Make sure we didn't do it in place
+        #assert(alltrue(self.potential.table == new.table) == False)
+        #new.transpose(self.nodes)
+        ## Check if in place transpose worked
+        #assert(alltrue(self.potential.table == new.table) == True)
 
-suite = unittest.makeSuite(TopoSortTestCase, 'test')
+suite = unittest.makeSuite(PotentialTestCase, 'test')
 runner = unittest.TextTestRunner()
 runner.run(suite)
 

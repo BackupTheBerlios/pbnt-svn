@@ -1,6 +1,7 @@
 from __future__ import generators
 from numarray import *
 import numarray.random_array as ra
+from pbnt.__init__ import BLANKEVIDENCE
 
 from __init__ import *
 

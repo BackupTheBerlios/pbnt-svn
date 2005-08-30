@@ -9,6 +9,8 @@ sys.path.append('../lib')
 # Library specific modules
 from pbnt import Distribution
 from pbnt import Node
+from pbnt import Graph
+from pbnt.GraphExceptions import *
 
 class TopoSortTestCase(unittest.TestCase):
     def setUp(self):
@@ -51,7 +53,7 @@ class TopoSortTestCase(unittest.TestCase):
         """
         self.nodes[0].add_child(self.nodes[4])
         self.nodes[4].add_parent(self.nodes[0])
-        self.assertRaises(AssertionError, Graph.DAG, self.nodes)
+        self.assertRaises(BadGraphStructure, Graph.DAG, self.nodes)
 
 suite = unittest.makeSuite(TopoSortTestCase, 'test')
 runner = unittest.TextTestRunner()

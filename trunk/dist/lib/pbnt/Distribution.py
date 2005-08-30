@@ -129,11 +129,12 @@ class Potential(object):
         # right should only be a DiscreteDistribution or a ContinuousDistribution if it is a subset and it should be __imul__
         assert(not isinstance(right, DiscreteDistribution) and not isinstance(right, ConditionalDiscreteDistribution)), \
               "Attempt to Multiply Potential with incompatible type: Discrete or Conditional"
-        nodeSet = self.__nodeSet_.union(right.__nodeSet_)
-        potential = Potential(list(nodeSet))
         if isinstance(right, (int, float, complex, long)):
+            potential = copy.deepcopy(self)
             potential.table *= right
         else:
+            nodeSet = self.__nodeSet_.union(right.__nodeSet_)
+            potential = Potential(list(nodeSet))
             selfValues = [potential.nodes.index(node) for node in self.nodes]
             rightValues = [potential.nodes.index(node) for node in right.nodes]
             # Store the following lists so we don't have to recompute them on every iteration
