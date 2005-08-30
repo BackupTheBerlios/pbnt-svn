@@ -1,8 +1,8 @@
 from numarray import *
 
 from Node import *
-import GraphUtilities
-import Utilities
+from Utilities import GraphUtilities
+from Utilities import Utilities
 import GraphExceptions
 
 try: set

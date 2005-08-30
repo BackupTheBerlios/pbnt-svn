@@ -1,6 +1,6 @@
 from numarray import *
 from Distribution import *
-import Utilities
+from Utilities import Utilities
 
 try: set
 except NameError:

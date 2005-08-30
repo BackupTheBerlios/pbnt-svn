@@ -1,6 +1,6 @@
 from numarray import *
-import GraphUtilities
-import Utilities
+from Utilities import GraphUtilities
+from Utilities import Utilities
 
 
 class Potential(object):

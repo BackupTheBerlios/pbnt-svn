@@ -12,7 +12,7 @@ from Graph import *
 from Node import *
 from Distribution import *
 from Utilities import *
-import GraphUtilities
+from Utilities import GraphUtilities
 
 """This is the InferenceEngine module.  It defines all inference algorithms.  All of these inference algorithms are implemented as "engines", which means that they wrap around a bayes net in order to create a new inference object that can be treated abstractly.  One reason for this is that abstract inference objects can be used by other methods such as learning algorithms in the same ways regardless of which inference method is actually being used. 
 """
