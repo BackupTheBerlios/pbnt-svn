@@ -5,7 +5,8 @@ from Inference import *
 from Utilities import *
 
 def test():
-    
+    """ This is an example of how to perform inference on a network using the Junction Tree Engine.  The exact same method could be used with any implemented inference engine by simply replaceing the line JunctionTreeEngine(water) with the appropriate constructor.
+    """
     
     #define water network
     water = EX.water()
