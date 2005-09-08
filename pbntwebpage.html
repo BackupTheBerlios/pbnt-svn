@@ -22,17 +22,17 @@ w\:* {behavior:url(#default#VML);}
   <o:Author>Elliot Cohen</o:Author>
   <o:Template>Normal</o:Template>
   <o:LastAuthor>Elliot Cohen</o:LastAuthor>
-  <o:Revision>7</o:Revision>
-  <o:TotalTime>10</o:TotalTime>
+  <o:Revision>9</o:Revision>
+  <o:TotalTime>11</o:TotalTime>
   <o:Created>2005-09-08T06:14:00Z</o:Created>
-  <o:LastSaved>2005-09-08T07:10:00Z</o:LastSaved>
-  <o:Pages>2</o:Pages>
-  <o:Words>404</o:Words>
-  <o:Characters>2308</o:Characters>
+  <o:LastSaved>2005-09-08T07:27:00Z</o:LastSaved>
+  <o:Pages>1</o:Pages>
+  <o:Words>403</o:Words>
+  <o:Characters>2303</o:Characters>
   <o:Company>UC Berkeley</o:Company>
   <o:Lines>19</o:Lines>
   <o:Paragraphs>5</o:Paragraphs>
-  <o:CharactersWithSpaces>2707</o:CharactersWithSpaces>
+  <o:CharactersWithSpaces>2701</o:CharactersWithSpaces>
   <o:Version>11.5606</o:Version>
  </o:DocumentProperties>
 </xml><![endif]--><!--[if gte mso 9]><xml>
@@ -60,6 +60,44 @@ w\:* {behavior:url(#default#VML);}
 	font-size:12.0pt;
 	font-family:"Times New Roman";
 	mso-fareast-font-family:"Times New Roman";}
+h1
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:1;
+	font-size:16.0pt;
+	font-family:Arial;
+	mso-font-kerning:16.0pt;
+	font-weight:bold;}
+h2
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:2;
+	font-size:14.0pt;
+	font-family:Arial;
+	font-weight:bold;
+	font-style:italic;}
+h3
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:3;
+	font-size:13.0pt;
+	font-family:Arial;
+	font-weight:bold;}
 a:link, span.MsoHyperlink
 	{color:blue;
 	text-decoration:underline;
@@ -341,33 +379,27 @@ ul
 
 <div class=Section1>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>PBNT &#8211; Python Bayesian
-Network Toolbox</p>
-
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><o:p>&nbsp;</o:p></p>
+<h1>PBNT &#8211; Python Bayesian Network Toolbox</h1>
 
 <p style='margin-bottom:0in;margin-bottom:.0001pt'>PBNT is a general purpose
 Bayesian Network library implemented in Python. Currently it is in its first
-release. It supports static Bayesian Networks with discrete variables. For a
-simple example of how to create Bayesian Networks with the toolbox, please see
+release. It supports static Bayesian Networks with discrete variables. For a simple
+example of how to create Bayesian Networks with the toolbox, please see
 dist/examples/<span class=SpellE>ExampleModels.py</span>, and an example of how
 to use this network for inference is contained in dist/examples/<span
 class=SpellE>exampleinference.py</span>.</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><o:p>&nbsp;</o:p></p>
+<p style='margin-bottom:0in;margin-bottom:.0001pt'>I <span class=GramE>are</span>
+currently compiling more complete documentation. All questions that you have
+should be forwarded to <a href="mailto:elliot@mail.berlios.de">elliot@mail.berlios.de</a>.
+Please send your <span class=GramE>questions,</span> it will help to compile a
+more comprehensive set of documentation.</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>We are currently compiling
-more complete documentation. All questions that you have should be forwarded to
-<a href="mailto:elliot@mail.berlios.de">elliot@mail.berlios.de</a>. Please send
-your <span class=GramE>questions,</span> it will help to compile a more
-comprehensive set of documentation.</p>
+<p style='margin-bottom:0in;margin-bottom:.0001pt'>If you are interested in
+joining the project, please also send email to <a
+href="mailto:elliot@mail.berlios.de">elliot@mail.berlios.de</a>.</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><o:p>&nbsp;</o:p></p>
-
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>If you are interested in joining
-the project, please also send email to <a href="mailto:elliot@mail.berlios.de">elliot@mail.berlios.de</a>.</p>
-
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>Requirements:</p>
+<h3>Requirements:</h3>
 
 <p style='margin-top:5.0pt;margin-right:0in;margin-bottom:0in;margin-left:.5in;
 margin-bottom:.0001pt;text-indent:-.25in;mso-list:l3 level1 lfo2;tab-stops:
@@ -387,21 +419,20 @@ href="http://www.stsci.edu/resources/software_hardware/numarray"><span
 class=SpellE>Numarray</span> 1.3.3</a> (or Higher, it may very well work on
 lower versions, but it was tested with this version)</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>Installation:</p>
+<h3>Installation:</h3>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><span style='mso-tab-count:
-1'>            </span>Download PBNT, and decompress it to any directory you
-like.<span style='mso-spacerun:yes'>  </span>Ensure that dist/lib is on your
-python path.<span style='mso-spacerun:yes'>  </span>The recommended way of
-doing this is to use <span class=SpellE><span class=GramE>sys.path.append</span></span><span
-class=GramE>(</span>..<span class=GramE>/lib) (or whatever the relative path of
-lib is with respect to the current file you are using).</span><span
-style='mso-spacerun:yes'>  </span>For examples of this please see
-dist/tests.<span style='mso-spacerun:yes'>  </span>If you want to use the
-Example Models, that directory will also have to be added to your path
-separately.</p>
+<p><span style='mso-tab-count:1'>            </span>Download PBNT, and
+decompress it to any directory you like.<span style='mso-spacerun:yes'> 
+</span>Ensure that dist/lib is on your python path.<span
+style='mso-spacerun:yes'>  </span>The recommended way of doing this is to use <span
+class=SpellE><span class=GramE>sys.path.append</span></span><span class=GramE>(</span>..<span
+class=GramE>/lib) (or whatever the relative path of lib is with respect to the
+current file you are using).</span><span style='mso-spacerun:yes'>  </span>For
+examples of this please see dist/tests.<span style='mso-spacerun:yes'> 
+</span>If you want to use the Example Models, that directory will also have to
+be added to your path separately.</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>Download:</p>
+<h3>Download:</h3>
 
 <p style='margin-top:5.0pt;margin-right:0in;margin-bottom:0in;margin-left:.5in;
 margin-bottom:.0001pt;text-indent:-.25in;mso-list:l0 level1 lfo4;tab-stops:
@@ -411,7 +442,7 @@ Symbol'><span style='mso-list:Ignore'>·<span style='font:7.0pt "Times New Roman"
 </span></span></span><![endif]><a
 href="http://download.berlios.de/pbnt/pbnt.zip">PBNT 0.1</a></p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>Currently supports:</p>
+<h3>Currently supports:</h3>
 
 <p style='margin-top:5.0pt;margin-right:0in;margin-bottom:0in;margin-left:.5in;
 margin-bottom:.0001pt;text-indent:-.25in;mso-list:l4 level1 lfo6;tab-stops:
@@ -428,7 +459,7 @@ Symbol'><span style='mso-list:Ignore'>·<span style='font:7.0pt "Times New Roman"
 </span></span></span><![endif]>Inference: exact(Junction Tree, Enumeration) and
 approximate (MCMC)</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>Future Developments:</p>
+<h3>Future Developments:</h3>
 
 <p style='margin-top:5.0pt;margin-right:0in;margin-bottom:0in;margin-left:.5in;
 margin-bottom:.0001pt;text-indent:-.25in;mso-list:l1 level1 lfo8;tab-stops:
@@ -454,8 +485,7 @@ Symbol'><span style='mso-list:Ignore'>·<span style='font:7.0pt "Times New Roman"
 </span></span></span><![endif]>Continuous <span class=SpellE>gaussian</span>
 distributions are also planned for the next release</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'>General Bayesian Network
-Info:</p>
+<h3>General Bayesian Network Info:</h3>
 
 <p style='margin-bottom:0in;margin-bottom:.0001pt'>There is a ton of
 information on this topic. For a very good description please see <i>Artificial
@@ -465,9 +495,7 @@ the Junction Tree algorithm used above please see <i>Inference in Belief
 Networks: <span class=GramE>A</span> Procedural Guide</i> (A. <span
 class=SpellE>Darwiche</span>, C. Huang 1996).</p>
 
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><o:p>&nbsp;</o:p></p>
-
-<p style='margin-bottom:0in;margin-bottom:.0001pt'><span class=SpellE>BerliOS</span>:</p>
+<h3><span class=SpellE>BerliOS</span>:</h3>
 
 <p style='margin-top:5.0pt;margin-right:0in;margin-bottom:0in;margin-left:.5in;
 margin-bottom:.0001pt;text-indent:-.25in;mso-list:l2 level1 lfo10;tab-stops:
