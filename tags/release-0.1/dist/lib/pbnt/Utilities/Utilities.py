@@ -141,12 +141,11 @@ def sequence_generator(iterObjs):
 class Evidence(dict):
     """ This is the data structure for evidence.  It acts exactly like a dictionary except that it will take lists of keys with the [] notation, rather than just single keys.
     """
-    
     def __setitem__(self, keys, values):
         if not isinstance(keys, types.ListType):
             keys = [keys]
             values = [values]
-        elif not isinstance(values, types.ListType):
+        elif (not isinstance(values, types.ListType)) and (not isinstance(values, ArrayType)):
             values = [values]*len(keys)
         items = zip(keys,values)
         self.update(items)
@@ -173,7 +172,12 @@ class Evidence(dict):
             if item[1] != BLANKEVIDENCE:
                 ev.append(item[0])
         return ev
-                
+    
+    def __copy__(self):
+        new = Evidence()
+        new.update(self.items())
+        return new
+    
         
                 
             

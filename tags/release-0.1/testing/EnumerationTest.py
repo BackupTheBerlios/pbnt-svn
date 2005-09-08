@@ -1,8 +1,12 @@
 #don't have to import BayesNet, DiscreteDistribution, 
 #or numarray because it is done in ExampleModels
-import ExampleModels as EX
-from Inference import *
-from Utilities import *
+import sys
+sys.path.append('../dist/lib')
+sys.path.append('../dist')
+import examples.ExampleModels as EX
+from pbnt.Inference import *
+from pbnt.Utilities import *
+
 
 def test():
     

@@ -31,11 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 #!/usr/bin/env python
-import numarray.objects as obj
-from Graph import *
-from Distribution import *
+import sys
 from numarray import *
-from Node import *
+sys.path.append('../lib')
+import numarray.objects as obj
+from pbnt.Graph import *
+from pbnt.Distribution import *
+from pbnt.Node import *
     
 def water():
     """ This is an example of how to implement the basic water network (4 nodes, cloudy, sprinkler, rain, and wetgrass.  sprinkler and rain are children of cloudy, and wetgrass is a child of both sprinkler and rain).

@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from numarray import *
+import numarray.random_array as ra
 from Utilities import GraphUtilities
 from Utilities import Utilities
 
@@ -92,6 +93,8 @@ class Potential(object):
     def generate_index(self, index, axis):
         """ This function works hand in hand with __getitem__.  It takes in a list of indices and a list of axes and generates an index in a format appropriate for __getitem__, which is currently generating strings which are then executed using eval.
         """
+        if isinstance(index, (int, float, long)):
+            index = [index]
         assert(len(index) == len(axis))
         tmp = zeros(self.nDims) - 1
         if len(axis) > 0:
@@ -254,6 +257,18 @@ class DiscreteDistribution(Potential):
     
     def size(self):
         return self.node.size()
+    
+    def sample(self):
+        #Sample a value given the distribution specified in self.table
+        rnum = ra.random()
+        probRange = 0
+        i = -1
+        for prob in self.table:
+            probRange += prob
+            i += 1
+            if rnum <= probRange:
+                break
+        return i
     
     def __eq__(self, other):
         self.node == other.node

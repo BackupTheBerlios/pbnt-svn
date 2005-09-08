@@ -145,9 +145,11 @@ class MCMCEngine(InferenceEngine):
         #X is a list of variables
         #N is thenumber of samples
         def marginal (self, X, N):
+            if not isinstance(X, types.ListType):
+                X = [X]
             Nx = [DiscreteDistribution(x) for x in X]
             queryIndex = array([x.index for x in X])
-            state = self.evidence.copy()
+            state = copy.copy(self.evidence)
             nonEvidence = state.empty()
             randMax = array([node.size() for node in nonEvidence])
             #ASSUMPTION: zero is the minimum value
@@ -159,9 +161,10 @@ class MCMCEngine(InferenceEngine):
                 # We start with a 100 sample cut as default
                 if i > 100:
                     for (node, dist) in zip(X, Nx):
-                        dist[state[node]] += 1
+                        index = dist.generate_index([state[node]], range(dist.nDims))
+                        dist[index] += 1
                         for node in nonEvidence:
-                            val = self.sampleValueGivenMB(node, state)
+                            val = self.sample_value_given_mb(node, state)
                             #change the state to reflect new value of given variable
                             if not state[node] == val:
                                 state[node] = val             
@@ -188,7 +191,7 @@ class MCMCEngine(InferenceEngine):
                     MBval[MBindex] *= child.dist[index]
             state[node] = oldVal
             MBval.normalize()                
-            val = util.sample(MBval)
+            val = MBval.sample()
             return val
 
 
