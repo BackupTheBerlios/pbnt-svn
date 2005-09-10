@@ -242,13 +242,16 @@ class DiscreteDistribution(Potential):
     """ The basic class for a distribution, it defines a simple distribution over a set number of values.  This is not to be confused with ConditionalDiscreteDistribution, which is a discrete distribution conditioned on other discrete distributions.
     """
     
-    def __init__(self, node):
+    def __init__(self, node, table=[]):
         self.node = node
         # FIXME: These should be accomplished through the overloading of __getattr__
         self.nodes = [node]
         self.__nodeSet_ = set([node])
         # END FIXME
-        self.table = zeros([node.size()], type=Float32)
+        if not table == []:
+            self.table = table
+        else:
+            self.table = zeros([node.size()], type=Float32)
         self.dims = array(shape(self.table))
         self.nDims = 1
         

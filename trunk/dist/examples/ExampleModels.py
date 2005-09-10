@@ -110,3 +110,29 @@ def water():
     
     return bnet
 
+def DBNUmbrella():
+    """ This a very basic discrete HMM.  It models the probability of using an umbrella given that it is raining.
+    """
+    
+    id = 1
+    rain = DynamicBayesNode(id, 2, name="Rain")
+    id = 2
+    umbrella = DynamicBayesNode(id, 2, name="Umbrella")
+    
+    rain.add_child(umbrella)
+    rain.add_Tchild(rain)
+    rain.add_Tparent(rain)
+    
+    umbrella.add_parent(rain)
+    
+    #create distributions
+    rDist = DiscreteDistribution(rain, table=array([0.3, 0.7], type=Float32))
+    rInterSliceDist = ConditionalDiscreteDistribution(nodes=[rain, rain], table=array([[0.9, 0.1], [0.1, 0.9]], type=Float32))
+    uDist = ConditionalDiscreteDistribution(nodes=[rain, umbrella], table=array([[0.2, 0.8], [0.5, 0.5]], type=Float32))
+    
+    rain.set_dist(rDist)
+    rain.set_Tdist(rInterSliceDist)
+    umbrella.set_dist(uDist)
+    nodes = [rain, umbrella]
+    dbn = DBN(nodes)
+    return dbn

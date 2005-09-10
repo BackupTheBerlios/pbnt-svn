@@ -144,7 +144,6 @@ class Evidence(dict):
     def __setitem__(self, keys, values):
         if not isinstance(keys, types.ListType):
             keys = [keys]
-            values = [values]
         elif (not isinstance(values, types.ListType)) and (not isinstance(values, ArrayType)):
             values = [values]*len(keys)
         items = zip(keys,values)
@@ -177,6 +176,24 @@ class Evidence(dict):
         new = Evidence()
         new.update(self.items())
         return new
+
+class TemporalEvidence(list):
+    """ This class is used to represent evidence over a temporal bayes net.  It operates like a list of static pieces of evidence.
+    """
+    
+    def __setitem__(self, keys, values):
+        """ keys is a list of lists (or tuples), each of length 2.  The first element is the time slice index, and the second is the corresponding node within that slice.
+        """
+        assert(isinstance(keys, types.ListType)), "Keys are not of type ListType"
+        assert(isinstance(keys[0], (types.ListType, types.TupleType))), "Keys[0] is not of type ListType"
+        if not isinstance(values, (types.ListType, ArrayType)):
+            values = [values] * len(keys)
+        for key, value in zip(keys, values):
+            self.
+            
+               
+        
+    
     
         
                 
