@@ -115,9 +115,13 @@ def DBNUmbrella():
     """
     
     id = 1
-    rain = DynamicBayesNode(id, 2, name="Rain")
+    slice = 0
+    rain = DynamicBayesNode(id, 2, slice, name="Rain")
     id = 2
-    umbrella = DynamicBayesNode(id, 2, name="Umbrella")
+    umbrella = DynamicBayesNode(id, 2, slice, name="Umbrella")
+    #id = 3
+    #slice = 1
+    #rain1 = DynamicBayesNode(id, 2, slice, name="Rain")
     
     rain.add_child(umbrella)
     rain.add_Tchild(rain)
