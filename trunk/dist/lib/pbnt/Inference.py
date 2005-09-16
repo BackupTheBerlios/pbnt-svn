@@ -368,7 +368,7 @@ class JunctionTreeEngine(InferenceEngine):
         return sepsetHeap
     
 
-class JunctionTreeDBNEngine(JunctionTreeEngine):
+class JunctionTreeInterfaceEngine(JunctionTreeEngine):
     """ JunctionTreeDBNEngine is the JunctionTreeEngine for dynamic networks.  It is far from done.  This is more of a place holder as of right now.
     """
     
@@ -379,4 +379,31 @@ class JunctionTreeDBNEngine(JunctionTreeEngine):
         triangulatedGraph = TriangleGraph( moralGraph )
         #build a join tree and initialize it
         self.joinTree = self.BuildJoinTree(triangulatedGraph)
+        
+    def marginal(self, nodes, T):
+        # DELETE: When change_evidence is completed delete this.
+        if not self.joinTree.initialized:
+            self.joinTree.reinitialize(self.bnet.nodes)
+        
+        self.joinTree.enter_evidence(self.evidence, self.bnet.nodes)
+        self.global_propagation()
+        # DELETE: End delete here
+        
+        distributions = []
+        if not isinstance(query, types.ListType):
+            query = [query]
+        for node in query:
+            Q = DiscreteDistribution(node)
+            for value in range(node.size()):
+                potential = node.clique.potential
+                index = potential.generate_index_node([value], [node])
+                distIndex = Q.generate_index([value], range(Q.nDims))
+                #FIXME: must be a better way to handle sum problem
+                val = potential[index]
+                if isinstance(val, ArrayType):
+                    val = val.sum()
+                Q[distIndex] = val
+            Q.normalize()
+            distributions.append(Q)
+        return distributions
         
