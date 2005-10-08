@@ -367,7 +367,17 @@ class JunctionTreeEngine(InferenceEngine):
                 heapq.heappush(sepsetHeap, sepset)
         return sepsetHeap
     
-
+class JunctionTreeUnrolledEngine(JunctionTreeEngine):
+    """ JunctionTreeUnrolledEngine is the simplest dynamic network inference engine.  It does a complete unroll of the DBN for the given number of time steps, and then converts it into a JTree upon which inference can be done.  Everything is inherited from JTree, except the init method.
+    """
+    def __init__(self, DBN, T):
+        InferenceEngine.__init__(DBN)
+        unrolledGraph = unroll(DBN, T)
+        moral = MoralGraph(unrolledGraph)
+        triangulatedGraph = TriangleGraph(moral)
+        self.joinTree = self.build_join_tree(triangulatedGraph)
+    
+        
 class JunctionTreeInterfaceEngine(JunctionTreeEngine):
     """ JunctionTreeDBNEngine is the JunctionTreeEngine for dynamic networks.  It is far from done.  This is more of a place holder as of right now.
     """
@@ -376,11 +386,11 @@ class JunctionTreeInterfaceEngine(JunctionTreeEngine):
         InferenceEngine.__init__(DBN)
         moral = MoralDBNGraph(DBN)
         #triangulate the graph
-        triangulatedGraph = TriangleGraph( moralGraph )
+        triangulatedGraph = TriangleGraph(moral)
         #build a join tree and initialize it
         self.joinTree = self.BuildJoinTree(triangulatedGraph)
         
-    def marginal(self, nodes, T):
+    def marginal(self, query):
         # DELETE: When change_evidence is completed delete this.
         if not self.joinTree.initialized:
             self.joinTree.reinitialize(self.bnet.nodes)

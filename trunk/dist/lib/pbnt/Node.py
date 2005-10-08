@@ -103,6 +103,12 @@ class DirectedNode(Node):
     def remove_child(self, child):
         # Same as remove_parent
         self.children.remove(child)
+    
+    def is_child(self, child):
+        return child in self.children
+    
+    def is_parent(self, parent):
+        return parent in self.parents
         
     def undirect(self):
         """ This drops the direction of self's edges.  This doesn't exactly destroy it since self still maintains lists of parents and children.  We could think of this as allowing us to treat self as both directed and undirected simply allowing it to be casted as one at one moment and the other at another moment.
@@ -132,6 +138,34 @@ class BayesNode(DirectedNode):
     def __copy__(self):
         return BayesNode(self.id, self.numValues, index=self.index, name=self.name)
 
+class DynamicNode(BayesNode):
+    def __init__(self, id, numValues, tSlice=-1, index=-1, name="anonymous"):
+        BayesNode.__init__(self, id, numValues, index, name)
+        self.tSlice = tSlice
+        self.temporalChildren = set()
+        self.temporalParents = set()
+    
+    def add_tParent(parent):
+        if not(parent in self.temporalParents) and not(self == parent):
+            self.temporalParents.add(parent)
+    
+    def add_tChild(child):
+        if not(child in self.temporalChildren) and not(self == parent):
+            self.temporalChildren(child)
+        
+    def __eq__(self, other):
+        assert isinstance(other, (DynamicNode, BayesNode))
+        if isinstance(other, DynamicNode):
+            return self.__isEq_(self, other)
+        else:
+            return DirectedNode.__eq__(self, other)
+    
+    def __isEq_(self, other):
+        return self.index == other.index and self.tSlice == other.tSlice
+    
+    def isEqual(self, other):
+        assert isinstance(other, (DynamicNode, BayesNode))
+        return DirectedNode.__eq__(self, other)
 
 class Clique(Node):
     """ Clique inherits from Node.  Clique's are clusters which act as a single node within a JoinTree. They are equivalent in JoinTrees to BayesNodes' in Bayesian Networks.  The main difference is that they have "potentials" instead of distributions.  Potentials are in effect the same as a conditional distribution, but unlike conditional distribtions, there isn't as clear a sense that the distribution is over one node and conditioned on a number of others.

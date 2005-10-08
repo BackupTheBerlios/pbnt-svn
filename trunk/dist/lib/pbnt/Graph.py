@@ -274,3 +274,48 @@ class BadTreeStructure(BadGraphStructure):
     """ An exception class used to indicate a bad junction tree structure.  It is currently used in Inference to signify when a junction tree is really a forest of trees, which is not an error, but it is not currently supported by this package therefore it is.
     """
     pass
+
+
+""" The following are utilities for use with the Graphs defined above.  There still might be some graph utilities defined in GraphUtilities, but these are currently being moved or replaced by methods specified below.
+"""
+def unroll(DBN, T):
+    """ Given a DBN (a 1.5 slice specification of a dynamic graph), create a bayes net (that is essentially static) with DBN nodes that fully specifies the structure.
+    """
+    assert T >= 2, 'DBN must be unrolled to at least 2 time slices'
+    sliceLists = []
+    for t in range(T):
+        newNodes = []
+        for node in DBN.nodes:
+            newNode = copy.copy(node)
+            newNode.tSlice = t
+            newNodes.append(newNode)
+        sliceLists.append(newNodes)
+    unrolledNodes = []
+    for t in range(T-1):
+        nodes = sliceLists[t]
+        for node in nodes:
+            for neighbor in nodes:
+                for parent in node.parents:
+                    if neighbor.isEqual(parent):
+                        node.remove_parent(parent)
+                        node.add_parent(neighbor)
+                for child in node.children:
+                    if neighbor.isEqual(child):
+                        node.remove_child(child)
+                        node.add_child(neighbor)
+            for tNeighbor in sliceLists[t+1]:
+                for tChild in node.temporalChildren:
+                    if tNeighbor.isEqual(tChild):
+                        node.remove_tChild(tChild)
+                        node.add_child(tNeighbor)
+            if t > 0:
+                for tNeighbor in sliceLists[t-1]:
+                    for tParent in node.temporalParents:
+                        if tNeighbor.isEqual(tParent):
+                            node.remove_tParent(tParent)
+                            node.add_parent(tNeighbor)
+            unrolledNodes.append(node)
+
+                
+            
+        
