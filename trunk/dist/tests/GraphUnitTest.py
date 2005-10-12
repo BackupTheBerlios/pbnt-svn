@@ -87,9 +87,92 @@ class TopoSortTestCase(unittest.TestCase):
         self.nodes[4].add_parent(self.nodes[0])
         self.assertRaises(BadGraphStructure, Graph.DAG, self.nodes)
 
+class DBNTestCase(unittest.TestCase):
+    def setUp(self):
+        """ Create a 1.5 slice specification of a DBN.
+        """
+        rain = Node.DynamicNode(1,2,tSlice=ABSTRACTSLICE,name="Rain")
+        umbrella = Node.DynamicNode(2,2,tSlice=ABSTRACTSLICE,name="Umbrella")
+        # Specify graph structure
+        rain.add_child(umbrella)
+        umbrella.add_parent(rain)
+        # Specify temporal structure
+        rain.add_next_slice(rain)
+        rain.add_prev_slice(rain)
+        self.nodes = [rain,umbrella]
+        self.DBN = Graph.DBN(self.nodes)
+    
+    def testBasicDBN(self):
+        """ Sanity check that DBN was basically created correctly.
+        """
+        for node in self.DBN.nodes:
+            if node == self.nodes[0]:
+                assert(node.children == set([self.nodes[1]]) and \
+                       node.parents == set() and \
+                       node.tparents == set([node]) and \
+                       node.tchildren == set([node])), \
+                      "BasicDBN: Rain's connections are malformed"
+            if node == self.nodes[1]:
+                assert(node.children == set() and \
+                       node.parents == set([self.nodes[0]]) and \
+                       node.tchildren == set() and \
+                       node.tparents == set()), \
+                      "BasicDBN: Umbrella's connections are malformed"
+    
+    def testUnroll(self):
+        """ Test that the graph is unrolled appropriately.
+        """
+        g = unroll(self.DBN, 3)
+        rain = self.nodes[0]
+        umbrella = self.nodes[1]
+        rain0 = copy.copy(rain)
+        rain0.tSlice = 0
+        rain1 = copy.copy(rain)
+        rain1.tSlice = 1
+        rain2 = copy.copy(rain)
+        rain2.tSlice = 2
+        umbrella0 = copy.copy(umbrella)
+        umbrella0.tSlice = 0
+        umbrella1 = copy.copy(umbrella)
+        umbrella1.tSlice = 1
+        umbrella2 = copy.copy(umbrella)
+        umbrella2.tSlice = 2
+        success = True
+        for node in g.nodes:
+            if node.tSlice == 0:
+                if node.id == 1:
+                    success == (node.parents == set() and \
+                                node.children == set([umbrella0, rain1]))
+                if node.id == 2:
+                    success == (node.parents == set([rain0]) and \
+                                node.children == set())
+            if node.tSlice == 1:
+                if node.id == 1:
+                    success == (node.parents == set([rain0]) and \
+                                node.children == set([rain2, umbrella1]))
+                if node.id == 2:
+                    success == (node.parents == set([rain1]) and \
+                                node.children == set())
+            if node.tSlice == 2:
+                if node.id == 1:
+                    success == (node.parents == set([rain1]) and \
+                                node.children == set([umbrella2]))
+                if node.id == 2:
+                    success == (node.parents == set([rain2]) and \
+                                node.children == set())
+        assert(success == True), "UnrollDBN: structure of unrolled network incorrect"
+    
+                
+                    
+               
+               
 suite = unittest.makeSuite(TopoSortTestCase, 'test')
 runner = unittest.TextTestRunner()
 runner.run(suite)
+
+suite2 = unittest.makeSuite(DBNTestCase, 'test')
+runner2 = unittest.TextTestRunner()
+runner2.run(suite2)
 
 if __name__ == "__main__":
     unittest.main()

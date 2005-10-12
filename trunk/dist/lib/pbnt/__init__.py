@@ -32,3 +32,5 @@
 
 # This is the value of blank evidence
 BLANKEVIDENCE = -1
+# This is the value used for the time step of an abstract slice (used for DBN 1.5)
+ABSTRACTSLICE = -1
